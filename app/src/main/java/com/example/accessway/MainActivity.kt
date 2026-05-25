@@ -10,20 +10,50 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
+import com.example.accessway.screens.LoginScreen
 import com.example.accessway.ui.theme.AccessWayTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
+
             AccessWayTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    HomePage(
-                        modifier = Modifier.padding(innerPadding)
-                    )
+
+                var isLogged by remember {
+                    mutableStateOf(false)
+                }
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+
+                    if (isLogged) {
+
+                        HomePage(
+                            modifier = Modifier.padding(innerPadding)
+                        )
+
+                    } else {
+
+                        LoginScreen(
+                            onLoginClick = {
+                                isLogged = true
+                            },
+                            onRegisterClick = {
+
+                            }
+                        )
+
+                    }
                 }
             }
         }
@@ -32,27 +62,40 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun HomePage(modifier: Modifier = Modifier) {
-    Column{
-//     SearchBar
-        Row{
+
+    Column(modifier = modifier) {
+
+        Text(
+            text = "Tela Principal",
+            fontSize = 24.sp
+        )
+
+        // SearchBar
+        Row {
 
         }
-//     Mapa
-        Box{
+
+        // Mapa
+        Box {
 
         }
-//     Detalhes
-        Column{
+
+        // Detalhes
+        Column {
+
             Row {
-//            Logo Avaliação
-                Box{
+
+                // Logo Avaliação
+                Box {
 
                 }
-//            Detalhes
-                Column{
+
+                // Detalhes
+                Column {
 
                 }
-//            Avaliação
+
+                // Avaliação
                 Box {
 
                 }
