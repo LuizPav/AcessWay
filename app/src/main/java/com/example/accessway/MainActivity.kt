@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
                             submit = { mainViewModel.backFromRegister() }
                         )
                     } else {
-
                         LoginScreen(
                             onLoginClick = {
                                 mainViewModel.login()
@@ -62,7 +61,6 @@ class MainActivity : ComponentActivity() {
                                 mainViewModel.goToRegister()
                             }
                         )
-
                     }
                 }
             }
