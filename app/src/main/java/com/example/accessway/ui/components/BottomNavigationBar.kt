@@ -10,38 +10,66 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import com.example.accessway.navigation.Screen
 
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(
+    navController: NavHostController
+) {
 
     NavigationBar {
 
         NavigationBarItem(
-            selected = true,
-            onClick = { },
-            icon = { Icon(Icons.Default.Home, null) },
-            label = { Text("Início") }
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Home.route)
+            },
+            icon = {
+                Icon(Icons.Default.Home, null)
+            },
+            label = {
+                Text("Início")
+            }
         )
 
         NavigationBarItem(
             selected = false,
-            onClick = { },
-            icon = { Icon(Icons.Default.Place, null) },
-            label = { Text("Rotas") }
+            onClick = {
+                navController.navigate(Screen.Routes.route)
+            },
+            icon = {
+                Icon(Icons.Default.Place, null)
+            },
+            label = {
+                Text("Rotas")
+            }
         )
 
         NavigationBarItem(
             selected = false,
-            onClick = { },
-            icon = { Icon(Icons.Default.FavoriteBorder, null) },
-            label = { Text("Favoritos") }
+            onClick = {
+                navController.navigate(Screen.Favorites.route)
+            },
+            icon = {
+                Icon(Icons.Default.FavoriteBorder, null)
+            },
+            label = {
+                Text("Favoritos")
+            }
         )
 
         NavigationBarItem(
             selected = false,
-            onClick = { },
-            icon = { Icon(Icons.Default.Person, null) },
-            label = { Text("Perfil") }
+            onClick = {
+                navController.navigate(Screen.Profile.route)
+            },
+            icon = {
+                Icon(Icons.Default.Person, null)
+            },
+            label = {
+                Text("Perfil")
+            }
         )
     }
 }
