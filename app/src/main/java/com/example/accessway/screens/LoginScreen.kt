@@ -16,10 +16,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,21 +30,18 @@ import androidx.compose.ui.unit.sp
 import com.example.accessway.R
 import com.example.accessway.ui.components.TextField
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.accessway.viewmodels.LoginViewModel
+
 @Composable
 fun LoginScreen(
+    viewModel: LoginViewModel = viewModel(),
     onLoginClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {}
 ) {
-
-    var email by remember {
-        mutableStateOf("")
-    }
-
-    var senha by remember {
-        mutableStateOf("")
-    }
-
-    val isLoginEnabled = email.isNotEmpty() && senha.isNotEmpty();
+    val email = viewModel.email
+    val senha = viewModel.senha
+    val isLoginEnabled = viewModel.isLoginEnabled
 
     //TEXTO REGISTRE-SE
     val annotatedText = buildAnnotatedString {
@@ -98,7 +91,7 @@ fun LoginScreen(
         TextField(
             value = email,
             label = "Email",
-            onValueChange = { email = it },
+            onValueChange = { viewModel.onEmailChange(it) },
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Email,
         )
@@ -109,7 +102,7 @@ fun LoginScreen(
         TextField(
             value = senha,
             label = "Senha",
-            onValueChange = { senha = it },
+            onValueChange = { viewModel.onSenhaChange(it) },
             modifier = Modifier.fillMaxWidth(),
             isPassword = true,
             keyboardType = KeyboardType.Password,
