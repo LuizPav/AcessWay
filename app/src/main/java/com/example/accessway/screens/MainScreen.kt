@@ -26,11 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.accessway.navigation.Screen
 import com.example.accessway.navigation.DrawerNavigationBar
 import com.example.accessway.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MainScreen(
@@ -42,8 +44,16 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val isHome = currentRoute == Screen.Home.route
+    val gestureEnabled = !isHome || drawerState.isOpen
+
+
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = gestureEnabled,
         drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = Color.White
