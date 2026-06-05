@@ -51,7 +51,7 @@ fun RegisterScreen(
     val passwordMismatchError = viewModel.passwordMismatchError
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Color.White)
             .padding(24.dp),
@@ -88,7 +88,7 @@ fun RegisterScreen(
             value = name,
             label = "Insira seu username",
             modifier = Modifier.fillMaxWidth(0.9f),
-            isError = false, // Geralmente não mostramos erro no nome assim que a tela abre
+            isError = false,
             errorMessage = "Nome não pode ser Vazio",
             onValueChange = { viewModel.onNameChange(it) }
         )
@@ -142,7 +142,7 @@ fun RegisterScreen(
         if (errorMessage != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = errorMessage!!,
+                text = errorMessage,
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 14.sp
             )
@@ -157,8 +157,11 @@ fun RegisterScreen(
                 .height(55.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF43A047),
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = Color.White,
+
+                disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.38f),
+                disabledContentColor = Color.White.copy(alpha = 0.5f)
             )
         ) {
             Text(

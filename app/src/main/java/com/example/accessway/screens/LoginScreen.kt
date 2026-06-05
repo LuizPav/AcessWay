@@ -31,6 +31,11 @@ import com.example.accessway.R
 import com.example.accessway.ui.components.TextField
 
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.accessway.ui.theme.BackgroundWhite
+import com.example.accessway.ui.theme.LinkBlue
+import com.example.accessway.ui.theme.PrimaryButtonBlue
+import com.example.accessway.ui.theme.TextDarkGray
+import com.example.accessway.ui.theme.TextMediumGray
 import com.example.accessway.viewmodels.LoginViewModel
 
 @Composable
@@ -45,13 +50,13 @@ fun LoginScreen(
 
     //TEXTO REGISTRE-SE
     val annotatedText = buildAnnotatedString {
-        withStyle(style = SpanStyle(color = Color(0xFF555555))) {
+        withStyle(style = SpanStyle(color = TextMediumGray)) {
             append("Ainda não possui conta? ")
         }
 
         withStyle(
             style = SpanStyle(
-                color = Color(0xFF1A73E8),
+                color = LinkBlue,
                 fontWeight = FontWeight.Bold
             )
         ) {
@@ -63,7 +68,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundWhite)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -82,7 +87,7 @@ fun LoginScreen(
             text = "Bem-vindo",
             fontSize = 28.sp,
             style = MaterialTheme.typography.titleLarge,
-            color = Color.DarkGray
+            color = TextDarkGray
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -127,10 +132,11 @@ fun LoginScreen(
                 .height(55.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1976D2),
-                contentColor = Color.White,
-                disabledContentColor = Color.White,
-                disabledContainerColor = MaterialTheme.colorScheme.onBackground
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+
+                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
             ),
             enabled = isLoginEnabled
         ) {
