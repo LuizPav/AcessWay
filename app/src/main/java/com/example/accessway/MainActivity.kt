@@ -41,7 +41,9 @@ class MainActivity : ComponentActivity() {
                     launcher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
                     if (isLogged) {
 
-                        MainScreen()
+                        MainScreen(
+                            modifier = Modifier.fillMaxSize()
+                        )
 
                     } else if(isRegisterActive) {
                         RegisterScreen(

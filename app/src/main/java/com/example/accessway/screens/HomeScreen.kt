@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.ui.components.MapBase
-import androidx.compose.ui.unit.sp
 import com.example.accessway.ui.components.SearchBar
 import com.example.accessway.viewmodels.HomeViewModel
 
@@ -35,8 +34,7 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(16.dp),
+            .background(Color.White),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -51,18 +49,38 @@ fun HomeScreen(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
+
             MapBase(viewModel = viewModel)
 
             SearchBar(
-                modifier = Modifier.align(Alignment.TopCenter)
-                    .padding(top = 55.dp, start = 16.dp, end = 16.dp)
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(
+                        top = 55.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                onMenuClick = {}
             )
 
             IconButton(
-                modifier = Modifier.padding(start = 4.dp, top = 6.dp)
-                    .background(Color.White, shape = RoundedCornerShape(24.dp))
-                    .border(1.dp, Color.Black,RoundedCornerShape(24.dp)),
-                onClick = { goBack() },
+                modifier = Modifier
+                    .padding(
+                        start = 4.dp,
+                        top = 6.dp
+                    )
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .border(
+                        1.dp,
+                        Color.Black,
+                        RoundedCornerShape(24.dp)
+                    ),
+                onClick = {
+                    goBack()
+                }
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
