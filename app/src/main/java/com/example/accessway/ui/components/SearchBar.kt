@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -26,9 +28,16 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SearchBar(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMenuClick: () -> Unit,
 ) {
     var textSearch by remember { mutableStateOf("") }
+
+
+    fun onSearchSubmit(txt: String) {
+        println(txt);
+    }
+
     Row(
         modifier = modifier.padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -53,18 +62,24 @@ fun SearchBar(
                 unfocusedIndicatorColor = Color.Transparent,
             ),
             leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Buscar"
-                )
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Abrir menu de navegação",
+                        tint = Color.Black
+                    )
+                }
+            },
+            trailingIcon = {
+                IconButton(onClick = { onSearchSubmit(textSearch) }) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Buscar",
+                        tint = Color.Black
+                    )
+                }
             },
             singleLine = true
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SearchBarPreview() {
-    SearchBar()
 }

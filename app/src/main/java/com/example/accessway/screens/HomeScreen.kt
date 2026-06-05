@@ -32,11 +32,14 @@ fun HomeScreen(
     goBack: () -> Unit
 ) {
 
+    fun MenuClick() {
+        println("Hamburguer Clicado!")
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(16.dp),
+            .background(Color.White),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -54,14 +57,17 @@ fun HomeScreen(
             MapBase(viewModel = viewModel)
 
             SearchBar(
-                modifier = Modifier.align(Alignment.TopCenter)
-                    .padding(top = 55.dp, start = 16.dp, end = 16.dp)
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 55.dp, start = 16.dp, end = 16.dp),
+                onMenuClick = { MenuClick() },
             )
 
             IconButton(
-                modifier = Modifier.padding(start = 4.dp, top = 6.dp)
+                modifier = Modifier
+                    .padding(start = 4.dp, top = 6.dp)
                     .background(Color.White, shape = RoundedCornerShape(24.dp))
-                    .border(1.dp, Color.Black,RoundedCornerShape(24.dp)),
+                    .border(1.dp, Color.Black, RoundedCornerShape(24.dp)),
                 onClick = { goBack() },
             ) {
                 Icon(
