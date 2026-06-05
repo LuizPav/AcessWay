@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.ui.components.MapBase
+import androidx.compose.ui.unit.sp
 import com.example.accessway.ui.components.SearchBar
 import com.example.accessway.viewmodels.HomeViewModel
 
@@ -32,8 +33,10 @@ fun HomeScreen(
 ) {
 
     Column(
-        modifier = modifier.fillMaxSize()
-            .background(Color.White),
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {

@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.example.accessway.screens.HomeScreen
 import com.example.accessway.screens.LoginScreen
 import com.example.accessway.screens.RegisterScreen
 import com.example.accessway.ui.theme.AccessWayTheme
+import com.example.accessway.screens.MainScreen
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.viewmodels.MainViewModel
@@ -41,10 +41,7 @@ class MainActivity : ComponentActivity() {
                     launcher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
                     if (isLogged) {
 
-                        HomeScreen(
-                            modifier = Modifier.padding(innerPadding),
-                            goBack = { mainViewModel.logout() }
-                        )
+                        MainScreen()
 
                     } else if(isRegisterActive) {
                         RegisterScreen(
