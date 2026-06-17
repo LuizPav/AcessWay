@@ -1,20 +1,56 @@
 package com.example.accessway.viewmodels
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import com.example.accessway.model.Stop
+import com.google.android.gms.maps.model.LatLng
 
 class HomeViewModel : ViewModel() {
-    private var _stops = List(10) { i ->
-        Stop("Parada - $i", avaliation = i+1)
-    }.toMutableList()
 
-    val stops get() = _stops.toList()
+    private val _stops = mutableStateListOf<Stop>()
 
-    fun removeStop(s: Stop) {
-        _stops.remove(s);
+    val stops: List<Stop>
+        get() = _stops
+
+    init {
+
+        repeat(10) { i ->
+
+            _stops.add(
+
+                Stop(
+                    name = "Parada - $i",
+                    avaliation = i + 1
+                )
+            )
+        }
     }
 
-    fun addStop(s: Stop) {
-        _stops.add(Stop(name = s.name, avaliation =  s.avaliation))
+    fun removeStop(
+        stop: Stop
+    ) {
+
+        _stops.remove(stop)
+    }
+
+    fun addStop(
+        stop: Stop
+    ) {
+
+        _stops.add(stop)
+    }
+
+    fun registerPoint(
+        location: LatLng
+    ) {
+
+        _stops.add(
+
+            Stop(
+                name = "Nova parada",
+                avaliation = 0,
+                location = location
+            )
+        )
     }
 }
