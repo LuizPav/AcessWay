@@ -18,7 +18,12 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onOpenMenu: () -> Unit
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
+
+
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+
         MapBase(
             viewModel = viewModel
         )
@@ -26,8 +31,14 @@ fun HomeScreen(
         SearchBar(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 55.dp, start = 16.dp, end = 16.dp),
-            onMenuClick = onOpenMenu,
+                .padding(
+                    top = 55.dp,
+                    start = 16.dp,
+                    end = 16.dp
+                ),
+            onMenuClick = onOpenMenu
         )
+
+
     }
 }
