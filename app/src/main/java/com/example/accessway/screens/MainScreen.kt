@@ -1,10 +1,15 @@
 package com.example.accessway.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerValue
@@ -17,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,6 +39,10 @@ import com.example.accessway.navigation.DrawerNavigationBar
 import com.example.accessway.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.example.accessway.ui.theme.LogoBlue
 
 @Composable
 fun MainScreen(
@@ -64,12 +74,13 @@ fun MainScreen(
                         .statusBarsPadding()
                         .padding(16.dp)
                 ) {
-                    TextButton(
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            mainViewModel.logout()
-                        }
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(0.9f)
+                        .padding(start = 16.dp)
+                            .clickable {
+                                scope.launch { drawerState.close() }
+                                mainViewModel.logout()
+                            }
+                        ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Sair",
@@ -84,6 +95,39 @@ fun MainScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable {
+                                if (currentRoute != Screen.Profile.route) {
+                                    scope.launch { drawerState.close() }
+                                    navController.navigate(Screen.Profile.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                } else {
+                                    scope.launch { drawerState.close() }
+                                }
+                            },
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = "UserPhoto",
+                            tint = LogoBlue,
+                            modifier = Modifier.size(100.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("User",
+                            color = LogoBlue,
+                            fontSize = 32.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     DrawerNavigationBar(
                         navController = navController,
@@ -110,15 +154,22 @@ fun MainScreen(
                 }
 
                 composable(Screen.Routes.route) {
-                    RoutesScreen()
+                    RoutesScreen(
+                        onOpenMenu = { scope.launch { drawerState.open() } }
+                    )
                 }
 
                 composable(Screen.Favorites.route) {
-                    FavoritesScreen()
+                    FavoritesScreen(
+                        onOpenMenu = { scope.launch { drawerState.open() } }
+                    )
                 }
 
                 composable(Screen.Profile.route) {
-                    ProfileScreen()
+                    ProfileScreen(
+                        onOpenMenu = { scope.launch { drawerState.open() } },
+                        onLogout = { mainViewModel.logout() }
+                    )
                 }
             }
         }

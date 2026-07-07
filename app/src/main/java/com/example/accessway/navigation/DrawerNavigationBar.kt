@@ -28,7 +28,6 @@ fun DrawerNavigationBar(
         Screen.Home,
         Screen.Routes,
         Screen.Favorites,
-        Screen.Profile
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
