@@ -20,18 +20,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.core.content.ContextCompat
+import com.example.accessway.R
 import com.example.accessway.viewmodels.HomeViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.MapsInitializer
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.MarkerInfoWindowContent
+import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+
+fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescriptor? {
+    val drawable = ContextCompat.getDrawable(context, vectorResId) ?: return null
+    drawable.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
+    val bitmap = Bitmap.createBitmap(
+        drawable.intrinsicWidth,
+        drawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = Canvas(bitmap)
+    drawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
 
 @Composable
 fun MapBase(
@@ -42,8 +62,13 @@ fun MapBase(
     val camPosState = rememberCameraPositionState()
     val context = LocalContext.current
 
-    var openedCard by remember {
-        mutableStateOf(false)
+    var busStopIcon by remember {
+        mutableStateOf<BitmapDescriptor?>(null)
+    }
+
+    LaunchedEffect(context) {
+        MapsInitializer.initialize(context)
+        busStopIcon = bitmapDescriptorFromVector(context, R.drawable.ic_bus_stop)
     }
 
     val hasLocationPermission by remember {
@@ -98,19 +123,9 @@ fun MapBase(
         ),
 
         onMapClick = { latLng ->
-
-            if (openedCard) {
-
-                openedCard = false
-
-            } else {
-
-                viewModel.registerPoint(
-                    latLng
-                )
-
-                openedCard = true
-            }
+            viewModel.registerPoint(latLng)
+            // Auto select the registered stop to trigger the retractable bottom sheet
+            viewModel.selectedStop = viewModel.stops.lastOrNull()
         }
 
     ) {
@@ -119,91 +134,15 @@ fun MapBase(
 
             stop.location?.let { location ->
 
-                MarkerInfoWindowContent(
-
-                    state = MarkerState(
-                        position = location
-                    ),
-
+                Marker(
+                    state = MarkerState(position = location),
                     title = stop.name,
-
+                    icon = if (stop.isBusStop) busStopIcon else null,
                     onClick = {
-
-                        openedCard = true
-
-                        false
+                        viewModel.selectedStop = stop
+                        true // consume click to suppress default info window
                     }
-
-                ) {
-
-                    Column(
-                        modifier = Modifier
-                            .background(
-                                color = Color.White,
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .padding(
-                                horizontal = 20.dp,
-                                vertical = 16.dp
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        Text(
-                            text = "📍 ${stop.name}"
-                        )
-
-                        Text(
-                            text = "⭐ ${stop.avaliation} avaliações",
-                            modifier = Modifier.padding(top = 6.dp),
-                            color = Color.Gray
-                        )
-
-                        Text(
-                            text = "♿ Acessibilidade",
-                            modifier = Modifier.padding(top = 2.dp),
-                            color = Color.Gray
-                        )
-
-                        Button(
-
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .fillMaxWidth(),
-
-                            shape = RoundedCornerShape(16.dp),
-
-                            onClick = {
-
-                                println("Abrir avaliações")
-
-                            }
-
-                        ) {
-
-                            Text("Ver avaliações")
-                        }
-
-                        OutlinedButton(
-
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .fillMaxWidth(),
-
-                            shape = RoundedCornerShape(16.dp),
-
-                            onClick = {
-
-                                println("Criar denúncia")
-
-                            }
-
-                        ) {
-
-                            Text("Criar denúncia")
-                        }
-                    }
-                }
+                )
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.ui.components.MapBase
 import com.example.accessway.ui.components.SearchBar
+import com.example.accessway.ui.components.RetractableBottomSheet
 import com.example.accessway.viewmodels.HomeViewModel
 
 @Composable
@@ -39,6 +40,10 @@ fun HomeScreen(
             onMenuClick = onOpenMenu
         )
 
-
+        RetractableBottomSheet(
+            visible = viewModel.selectedStop != null,
+            stop = viewModel.selectedStop,
+            onDismiss = { viewModel.selectedStop = null }
+        )
     }
 }
