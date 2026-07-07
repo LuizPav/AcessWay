@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,24 +21,31 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.BorderOuter
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,19 +64,23 @@ import com.example.accessway.ui.theme.LogoGreen
 import com.example.accessway.ui.theme.TextDarkGray
 import com.example.accessway.ui.theme.TextLightGray
 import com.example.accessway.ui.theme.TextMediumGray
+import com.example.accessway.viewmodels.HomeViewModel
 import kotlin.math.roundToInt
 
 @Composable
 fun RetractableBottomSheet(
     visible: Boolean,
     stop: Stop?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    viewModel: HomeViewModel
 ) {
     var offsetY by remember { mutableFloatStateOf(0f) }
+    var isEditing by remember { mutableStateOf(false) }
 
-    // Reset drag offset when stop changes or visibility changes
+    // Reset when selected stop changes
     LaunchedEffect(stop, visible) {
         offsetY = 0f
+        isEditing = false
     }
 
     AnimatedVisibility(
@@ -82,15 +95,23 @@ fun RetractableBottomSheet(
         )
     ) {
         if (stop != null) {
+            val userEval = viewModel.userEvaluations[stop.name]
+
+            // Temporary form states
+            var tempAcessibilidade by remember(stop, isEditing) { mutableStateOf(userEval?.ratingAcessibilidade ?: stop.ratingAcessibilidade) }
+            var tempPisoTatil by remember(stop, isEditing) { mutableStateOf(userEval?.ratingPisoTatil ?: stop.ratingPisoTatil) }
+            var tempIluminacao by remember(stop, isEditing) { mutableStateOf(userEval?.ratingIluminacao ?: stop.ratingIluminacao) }
+            var tempCobertura by remember(stop, isEditing) { mutableStateOf(userEval?.ratingCobertura ?: stop.ratingCobertura) }
+            var tempStars by remember(stop, isEditing) { mutableStateOf(userEval?.userStars ?: stop.avaliation.roundToInt().coerceIn(1, 5)) }
+
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.42f) // Preenche aproximadamente 4/10 da tela
+                        .fillMaxHeight(0.58f) // 58% of screen height
                         .offset { IntOffset(0, offsetY.roundToInt().coerceAtLeast(0)) }
                         .shadow(16.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(
@@ -100,7 +121,7 @@ fun RetractableBottomSheet(
                         .pointerInput(Unit) {
                             detectVerticalDragGestures(
                                 onDragEnd = {
-                                    if (offsetY > 150f) {
+                                    if (offsetY > 180f) {
                                         onDismiss()
                                     } else {
                                         offsetY = 0f
@@ -123,7 +144,7 @@ fun RetractableBottomSheet(
                             .background(Color.LightGray.copy(alpha = 0.8f))
                     )
 
-                    // --- HEADER INFO ---
+                    // --- FIXED HEADER ---
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -138,47 +159,12 @@ fun RetractableBottomSheet(
                                 fontWeight = FontWeight.Bold,
                                 color = TextDarkGray
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Avaliação",
-                                    tint = LogoGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${stop.avaliation}.0",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDarkGray
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(LogoGreen.copy(alpha = 0.12f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Accessible,
-                                            contentDescription = null,
-                                            tint = LogoGreen,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Acessível",
-                                            color = LogoGreen,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp
-                                        )
-                                    }
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stop.address,
+                                fontSize = 12.sp,
+                                color = TextMediumGray
+                            )
                         }
 
                         IconButton(
@@ -205,112 +191,429 @@ fun RetractableBottomSheet(
                             .background(Color.LightGray.copy(alpha = 0.3f))
                     )
 
-                    // --- LINES LIST (Cittamobi style) ---
-                    Text(
-                        text = "Próximos Ônibus",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = LogoBlue,
-                        modifier = Modifier.padding(top = 12.dp, start = 20.dp, bottom = 8.dp)
-                    )
+                    // --- SCROLLABLE BODY ---
+                    val bodyScrollState = rememberScrollState()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(bodyScrollState)
+                    ) {
+                        if (!isEditing) {
+                            // --- DETAIL MODE ---
 
-                    if (stop.lines.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
+                            // 1. Condições da parada Grid
                             Text(
-                                text = "Nenhuma linha cadastrada nesta parada.",
-                                color = TextLightGray,
-                                fontSize = 13.sp
+                                text = "Condições da parada",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LogoBlue,
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp)
                             )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(stop.lines) { line ->
-                                val lineParts = line.split(" - ")
-                                val lineCode = lineParts.getOrNull(0) ?: ""
-                                val lineName = lineParts.getOrNull(1) ?: ""
 
-                                // Mock arrival time for Cittamobi feel
-                                val arrivalMinutes = remember(line) { (3..25).random() }
+                            // 2x2 Grid of features
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    ConditionCard(
+                                        title = "Acessível",
+                                        statusText = when (stop.ratingAcessibilidade) {
+                                            3 -> "Ótimo estado"
+                                            2 -> "Parcial"
+                                            else -> "Ruim"
+                                        },
+                                        statusValue = stop.ratingAcessibilidade,
+                                        icon = { color -> Icon(Icons.Default.Accessible, null, tint = color) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ConditionCard(
+                                        title = "Cobertura",
+                                        statusText = when (stop.ratingCobertura) {
+                                            3 -> "Disponível"
+                                            2 -> "Parcial"
+                                            else -> "Ausente"
+                                        },
+                                        statusValue = stop.ratingCobertura,
+                                        icon = { color -> Icon(Icons.Default.Home, null, tint = color) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    ConditionCard(
+                                        title = "Piso tátil",
+                                        statusText = when (stop.ratingPisoTatil) {
+                                            3 -> "Bom estado"
+                                            2 -> "Parcial"
+                                            else -> "Ausente"
+                                        },
+                                        statusValue = stop.ratingPisoTatil,
+                                        icon = { color -> Icon(Icons.Default.BorderOuter, null, tint = color) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ConditionCard(
+                                        title = "Iluminação",
+                                        statusText = when (stop.ratingIluminacao) {
+                                            3 -> "Bom estado"
+                                            2 -> "Parcial"
+                                            else -> "Ausente"
+                                        },
+                                        statusValue = stop.ratingIluminacao,
+                                        icon = { color -> Icon(Icons.Default.Lightbulb, null, tint = color) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
 
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.08f))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(Color.LightGray.copy(alpha = 0.3f))
+                            )
+
+                            // 2. Avaliações Histogram section
+                            Text(
+                                text = "Avaliações",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LogoBlue,
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Left column: Average
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.weight(0.4f)
                                 ) {
+                                    Text(
+                                        text = String.format("%.1f", stop.avaliation).replace(".", ","),
+                                        fontSize = 42.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDarkGray
+                                    )
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
+                                        repeat(5) { index ->
+                                            Icon(
+                                                imageVector = Icons.Default.Star,
+                                                contentDescription = null,
+                                                tint = if (index < stop.avaliation.roundToInt()) Color(0xFFFFB300) else Color.LightGray,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "${stop.reviewCount} avaliações",
+                                        fontSize = 11.sp,
+                                        color = TextLightGray
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(16.dp))
+
+                                // Right column: Distribution bars
+                                Column(
+                                    modifier = Modifier.weight(0.6f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    val maxCount = stop.ratingDistribution.maxOrNull()?.coerceAtLeast(1) ?: 1
+                                    for (star in 5 downTo 1) {
+                                        val count = stop.ratingDistribution.getOrNull(star - 1) ?: 0
+                                        val fraction = count.toFloat() / maxCount
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
+                                            Text(
+                                                text = "$star",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextMediumGray,
+                                                modifier = Modifier.width(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Box(
                                                 modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(LogoBlue),
-                                                contentAlignment = Alignment.Center
+                                                    .weight(1f)
+                                                    .height(6.dp)
+                                                    .clip(RoundedCornerShape(3.dp))
+                                                    .background(Color.LightGray.copy(alpha = 0.3f))
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.DirectionsBus,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(20.dp)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(fraction)
+                                                        .fillMaxHeight()
+                                                        .background(LogoGreen)
                                                 )
                                             }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Text(
-                                                    text = lineCode,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = TextDarkGray
-                                                )
-                                                Text(
-                                                    text = lineName,
-                                                    fontSize = 12.sp,
-                                                    color = TextMediumGray,
-                                                    maxLines = 1
-                                                )
-                                            }
-                                        }
-
-                                        Column(
-                                            horizontalAlignment = Alignment.End
-                                        ) {
-                                            Text(
-                                                text = "$arrivalMinutes min",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = LogoGreen
-                                            )
-                                            Text(
-                                                text = "Chegando",
-                                                fontSize = 10.sp,
-                                                color = TextLightGray
-                                            )
                                         }
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Action button: Avaliar esta parada
+                            Button(
+                                onClick = { isEditing = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = LogoBlue)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (userEval != null) "Editar minha avaliação" else "Avaliar esta parada",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
+
+                        } else {
+                            // --- EVALUATION FORM MODE ---
+                            Text(
+                                text = "Sua Avaliação Geral",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LogoBlue,
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp)
+                            )
+
+                            // Stars Selector
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp)
+                            ) {
+                                repeat(5) { index ->
+                                    val currentStar = index + 1
+                                    IconButton(
+                                        onClick = { tempStars = currentStar },
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = if (index < tempStars) Color(0xFFFFB300) else Color.LightGray,
+                                            modifier = Modifier.size(36.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(Color.LightGray.copy(alpha = 0.3f))
+                            )
+
+                            Text(
+                                text = "Condições Específicas",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LogoBlue,
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
+                            )
+
+                            // 4 Rating selector lines
+                            FeatureRatingSelector(
+                                title = "Acessibilidade",
+                                selectedValue = tempAcessibilidade,
+                                onValueSelected = { tempAcessibilidade = it }
+                            )
+                            FeatureRatingSelector(
+                                title = "Cobertura",
+                                selectedValue = tempCobertura,
+                                onValueSelected = { tempCobertura = it }
+                            )
+                            FeatureRatingSelector(
+                                title = "Piso tátil",
+                                selectedValue = tempPisoTatil,
+                                onValueSelected = { tempPisoTatil = it }
+                            )
+                            FeatureRatingSelector(
+                                title = "Iluminação",
+                                selectedValue = tempIluminacao,
+                                onValueSelected = { tempIluminacao = it }
+                            )
+
+                            // Save & Cancel buttons
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { isEditing = false },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(text = "Cancelar", fontWeight = FontWeight.Bold)
+                                }
+                                Button(
+                                    onClick = {
+                                        viewModel.submitEvaluation(
+                                            stopName = stop.name,
+                                            acessibilidade = tempAcessibilidade,
+                                            pisoTatil = tempPisoTatil,
+                                            iluminacao = tempIluminacao,
+                                            cobertura = tempCobertura,
+                                            userStars = tempStars
+                                        )
+                                        isEditing = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = LogoBlue)
+                                ) {
+                                    Text(text = "Salvar", color = Color.White, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ConditionCard(
+    title: String,
+    statusText: String,
+    statusValue: Int, // 1 = Ruim, 2 = Parcial, 3 = Bom
+    icon: @Composable (Color) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val (backgroundColor, contentColor) = when (statusValue) {
+        3 -> Color(0xFFE8F5E9) to Color(0xFF2E7D32) // Verde suave
+        2 -> Color(0xFFFFF3E0) to Color(0xFFEF6C00) // Laranja suave
+        else -> Color(0xFFFFEBEE) to Color(0xFFC62828) // Vermelho suave
+    }
+
+    Card(
+        modifier = modifier
+            .padding(4.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(contentColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                icon(contentColor)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+                Text(
+                    text = statusText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FeatureRatingSelector(
+    title: String,
+    selectedValue: Int,
+    onValueSelected: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextDarkGray
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val options = listOf(
+                1 to ("Ruim/Ausente" to Color(0xFFFFEBEE) to Color(0xFFC62828)),
+                2 to ("Parcial" to Color(0xFFFFF3E0) to Color(0xFFEF6C00)),
+                3 to ("Bom/Disponível" to Color(0xFFE8F5E9) to Color(0xFF2E7D32))
+            )
+
+            options.forEach { (value, styling) ->
+                val (textAndBg, textColor) = styling
+                val (text, bgColor) = textAndBg
+                val isSelected = selectedValue == value
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSelected) bgColor else Color.LightGray.copy(alpha = 0.15f))
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) textColor else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .clickable { onValueSelected(value) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = text,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) textColor else TextMediumGray
+                    )
                 }
             }
         }

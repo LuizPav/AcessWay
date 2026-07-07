@@ -43,7 +43,8 @@ fun HomeScreen(
         RetractableBottomSheet(
             visible = viewModel.selectedStop != null,
             stop = viewModel.selectedStop,
-            onDismiss = { viewModel.selectedStop = null }
+            onDismiss = { viewModel.selectedStop = null },
+            viewModel = viewModel
         )
     }
 }
