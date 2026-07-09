@@ -9,13 +9,9 @@ import com.example.accessway.model.UserProfile
 import com.example.accessway.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class ProfileViewModel : ViewModel() {
-    var isEditingName by mutableStateOf(false)
-
-    fun toggleEditNameDialog(show: Boolean) {
-        isEditingName = show
-    }
     private val userRepository = UserRepository()
     private val auth = FirebaseAuth.getInstance()
 
@@ -25,49 +21,64 @@ class ProfileViewModel : ViewModel() {
     var isLoading by mutableStateOf(false)
         private set
 
+    var isEditingName by mutableStateOf(false)
+
+    // Dentro do seu ProfileViewModel
     init {
         loadProfile()
     }
 
-
-    fun sendPasswordResetEmail(onResult: (Boolean, String?) -> Unit) {
-        val email = auth.currentUser?.email
-        if (email == null) {
-            onResult(false, "Erro: E-mail não encontrado.")
-            return
-        }
-
-        auth.sendPasswordResetEmail(email)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    onResult(true, "E-mail de redefinição enviado!")
-                } else {
-                    onResult(false, "Falha ao enviar e-mail.")
-                }
-            }
-    }
-
-    private fun loadProfile() {
+    fun loadProfile() {
         val uid = auth.currentUser?.uid ?: return
+
+        // Mostra que está carregando
+        isLoading = true
+
         viewModelScope.launch {
-            isLoading = true
-            userRepository.getUser(uid).onSuccess {
-                profileState = it
-            }
-            isLoading = false
+            userRepository.getUser(uid)
+                .onSuccess { user ->
+                    // Aqui garantimos que o estado foi atualizado com o que está no banco
+                    profileState = user
+                    isLoading = false
+                }
+                .onFailure {
+                    Log.e("ProfileDebug", "Falha ao carregar perfil: ${it.message}")
+                    isLoading = false
+                }
         }
     }
 
-    // Função genérica de atualização para manter o código limpo
     private fun updateProfile(updatedProfile: UserProfile) {
         profileState = updatedProfile
+        Log.d("ProfileDebug", "Tentando salvar: $updatedProfile") // ADICIONE ISSO
         viewModelScope.launch {
-            userRepository.saveUser(updatedProfile)
+            val result = userRepository.saveUser(updatedProfile)
+            result.onFailure {
+                Log.e("ProfileDebug", "ERRO NO FIRESTORE: ${it.message}") // ADICIONE ISSO
+            }
+            result.onSuccess {
+                Log.d("ProfileDebug", "SUCESSO AO SALVAR!") // ADICIONE ISSO
+            }
         }
+    }
+
+    fun updateName(newName: String) {
+        // Garantimos que o UID vindo do Auth seja atribuído aqui
+        val currentUid = auth.currentUser?.uid ?: return
+        updateProfile(profileState.copy(name = newName, uid = currentUid))
     }
 
     fun updateWheelchair(needed: Boolean) = updateProfile(profileState.copy(needsWheelchair = needed))
     fun updateTactilePaving(needed: Boolean) = updateProfile(profileState.copy(needsTactilePaving = needed))
     fun updateAudioAlerts(needed: Boolean) = updateProfile(profileState.copy(needsAudioAlerts = needed))
-    fun updateName(newName: String) = updateProfile(profileState.copy(name = newName))
+
+    fun toggleEditNameDialog(show: Boolean) { isEditingName = show }
+
+    fun sendPasswordResetEmail(onResult: (Boolean, String?) -> Unit) {
+        val email = auth.currentUser?.email ?: return
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                onResult(task.isSuccessful, if (task.isSuccessful) "E-mail enviado!" else "Falha ao enviar.")
+            }
+    }
 }
