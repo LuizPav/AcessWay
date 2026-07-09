@@ -3,7 +3,6 @@ package com.example.accessway.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,17 +27,24 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,242 +70,297 @@ fun ProfileScreen(
     val profile = viewModel.profileState
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundWhite)
-            .statusBarsPadding()
-    ) {
-        // --- CUSTOM HEADER / TOP BAR ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onOpenMenu,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.LightGray.copy(alpha = 0.2f))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Abrir Menu",
-                    tint = LogoBlue
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = "Meu Perfil",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = LogoBlue
-            )
-        }
+    // O newName ainda precisa ser 'remember' porque ele vive enquanto o diálogo está aberto
+    var newName by remember(profile.name) { mutableStateOf(profile.name) }
 
+    // Use o estado do ViewModel para o AlertDialog
+    if (viewModel.isEditingName) {
+        AlertDialog(
+            onDismissRequest = { viewModel.toggleEditNameDialog(false) },
+            title = { Text("Editar Nome") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Nome completo") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateName(newName)
+                    viewModel.toggleEditNameDialog(false)
+                }) {
+                    Text("Salvar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.toggleEditNameDialog(false) }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (viewModel.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .weight(1f)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp)
+                .background(BackgroundWhite)
+                .statusBarsPadding()
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- USER INFO CARD ---
-            Card(
+            // --- CUSTOM HEADER / TOP BAR ---
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                IconButton(
+                    onClick = {
+                        newName = viewModel.profileState.name // Preenche com o nome atual antes de abrir
+                        viewModel.toggleEditNameDialog(true)
+                    },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .clip(CircleShape)
+                        .background(Color.LightGray.copy(alpha = 0.2f))
+                        .size(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Foto de perfil",
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar nome",
                         tint = LogoBlue,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = profile.name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDarkGray
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = profile.email,
-                            fontSize = 14.sp,
-                            color = TextMediumGray
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            // Mock editing user name
-                            viewModel.updateName(if (profile.name == "Luiz Pavão") "Luiz Henrique Pavão" else "Luiz Pavão")
-                        },
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color.LightGray.copy(alpha = 0.2f))
-                            .size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar nome",
-                            tint = LogoBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
                 }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Meu Perfil",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LogoBlue
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- ACCESSIBILITY PREFERENCES SECTION ---
-            Text(
-                text = "Preferências de Acessibilidade",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = LogoBlue,
-                modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
-            )
-
-            Card(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    .fillMaxSize()
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 16.dp)
             ) {
-                Column(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- USER INFO CARD ---
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .border(
+                            1.dp,
+                            Color.LightGray.copy(alpha = 0.5f),
+                            RoundedCornerShape(16.dp)
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    // Switch 1: Wheelchair
-                    PreferenceSwitchRow(
-                        title = "Rotas para Cadeirantes",
-                        description = "Prioriza caminhos com rampas, elevadores e rebaixamento de calçada.",
-                        icon = Icons.Default.Accessible,
-                        checked = profile.needsWheelchair,
-                        onCheckedChange = { viewModel.updateWheelchair(it) }
-                    )
-
-                    Spacer(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.LightGray.copy(alpha = 0.3f))
-                    )
-
-                    // Switch 2: Tactile Paving
-                    PreferenceSwitchRow(
-                        title = "Presença de Piso Tátil",
-                        description = "Alerta rotas que contam com sinalização tátil direcional e de alerta.",
-                        icon = Icons.Default.Visibility,
-                        checked = profile.needsTactilePaving,
-                        onCheckedChange = { viewModel.updateTactilePaving(it) }
-                    )
-
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.LightGray.copy(alpha = 0.3f))
-                    )
-
-                    // Switch 3: Audio Alerts
-                    PreferenceSwitchRow(
-                        title = "Alertas Sonoros",
-                        description = "Informa cruzamentos equipados com sinal sonoro ou alertas falados.",
-                        icon = Icons.Default.Notifications,
-                        checked = profile.needsAudioAlerts,
-                        onCheckedChange = { viewModel.updateAudioAlerts(it) }
-                    )
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Foto de perfil",
+                            tint = LogoBlue,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = profile.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDarkGray
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = profile.email,
+                                fontSize = 14.sp,
+                                color = TextMediumGray
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                newName = profile.name // Atualiza o estado temporário
+                                viewModel.toggleEditNameDialog(true) // Abre o diálogo via ViewModel
+                            },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color.LightGray.copy(alpha = 0.2f))
+                                .size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar nome",
+                                tint = LogoBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // --- ACCOUNT CONFIGS SECTION ---
-            Text(
-                text = "Configurações da Conta",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = LogoBlue,
-                modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
-            )
+                // --- ACCESSIBILITY PREFERENCES SECTION ---
+                Text(
+                    text = "Preferências de Acessibilidade",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LogoBlue,
+                    modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                )
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            1.dp,
+                            Color.LightGray.copy(alpha = 0.5f),
+                            RoundedCornerShape(16.dp)
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    ConfigRow(
-                        title = "Segurança e Senha",
-                        icon = Icons.Default.Lock,
-                        onClick = {}
-                    )
-                    Spacer(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.LightGray.copy(alpha = 0.3f))
-                    )
-                    ConfigRow(
-                        title = "Termos de Uso e Privacidade",
-                        icon = Icons.Default.Info,
-                        onClick = {}
-                    )
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.LightGray.copy(alpha = 0.3f))
-                    )
-                    ConfigRow(
-                        title = "Excluir Conta",
-                        icon = Icons.Default.DeleteForever,
-                        iconColor = Color.Red,
-                        titleColor = Color.Red,
-                        onClick = {}
-                    )
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color.LightGray.copy(alpha = 0.3f))
-                    )
-                    ConfigRow(
-                        title = "Sair da Conta",
-                        icon = Icons.AutoMirrored.Filled.ExitToApp,
-                        iconColor = Color.Red,
-                        titleColor = Color.Red,
-                        onClick = onLogout
-                    )
-                }
-            }
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        // Switch 1: Wheelchair
+                        PreferenceSwitchRow(
+                            title = "Rotas para Cadeirantes",
+                            description = "Prioriza caminhos com rampas, elevadores e rebaixamento de calçada.",
+                            icon = Icons.Default.Accessible,
+                            checked = profile.needsWheelchair,
+                            onCheckedChange = { viewModel.updateWheelchair(it) }
+                        )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.LightGray.copy(alpha = 0.3f))
+                        )
+
+                        // Switch 2: Tactile Paving
+                        PreferenceSwitchRow(
+                            title = "Presença de Piso Tátil",
+                            description = "Alerta rotas que contam com sinalização tátil direcional e de alerta.",
+                            icon = Icons.Default.Visibility,
+                            checked = profile.needsTactilePaving,
+                            onCheckedChange = { viewModel.updateTactilePaving(it) }
+                        )
+
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.LightGray.copy(alpha = 0.3f))
+                        )
+
+                        // Switch 3: Audio Alerts
+                        PreferenceSwitchRow(
+                            title = "Alertas Sonoros",
+                            description = "Informa cruzamentos equipados com sinal sonoro ou alertas falados.",
+                            icon = Icons.Default.Notifications,
+                            checked = profile.needsAudioAlerts,
+                            onCheckedChange = { viewModel.updateAudioAlerts(it) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // --- ACCOUNT CONFIGS SECTION ---
+                Text(
+                    text = "Configurações da Conta",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LogoBlue,
+                    modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            1.dp,
+                            Color.LightGray.copy(alpha = 0.5f),
+                            RoundedCornerShape(16.dp)
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ConfigRow(
+                            title = "Segurança e Senha",
+                            icon = Icons.Default.Lock,
+                            onClick = {}
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.LightGray.copy(alpha = 0.3f))
+                        )
+                        ConfigRow(
+                            title = "Termos de Uso e Privacidade",
+                            icon = Icons.Default.Info,
+                            onClick = {}
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.LightGray.copy(alpha = 0.3f))
+                        )
+                        ConfigRow(
+                            title = "Excluir Conta",
+                            icon = Icons.Default.DeleteForever,
+                            iconColor = Color.Red,
+                            titleColor = Color.Red,
+                            onClick = {}
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.LightGray.copy(alpha = 0.3f))
+                        )
+                        ConfigRow(
+                            title = "Sair da Conta",
+                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            iconColor = Color.Red,
+                            titleColor = Color.Red,
+                            onClick = onLogout
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 }

@@ -11,7 +11,11 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
+    var isEditingName by mutableStateOf(false)
 
+    fun toggleEditNameDialog(show: Boolean) {
+        isEditingName = show
+    }
     private val userRepository = UserRepository()
     private val auth = FirebaseAuth.getInstance()
 
