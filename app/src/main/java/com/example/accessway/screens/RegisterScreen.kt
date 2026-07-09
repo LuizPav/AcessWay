@@ -32,6 +32,8 @@ import com.example.accessway.ui.components.TextField
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.viewmodels.RegisterViewModel
+import androidx.compose.material3.CircularProgressIndicator
+import com.example.accessway.ui.state.AuthState
 
 @Composable
 fun RegisterScreen(
@@ -150,8 +152,15 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (viewModel.authState is AuthState.Loading) {
+
+            CircularProgressIndicator()
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(
-            onClick = { viewModel.handleRegister(submit) },
+            onClick = { viewModel.register(submit) },
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .height(55.dp),
