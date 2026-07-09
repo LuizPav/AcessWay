@@ -29,6 +29,24 @@ class ProfileViewModel : ViewModel() {
         loadProfile()
     }
 
+
+    fun sendPasswordResetEmail(onResult: (Boolean, String?) -> Unit) {
+        val email = auth.currentUser?.email
+        if (email == null) {
+            onResult(false, "Erro: E-mail não encontrado.")
+            return
+        }
+
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, "E-mail de redefinição enviado!")
+                } else {
+                    onResult(false, "Falha ao enviar e-mail.")
+                }
+            }
+    }
+
     private fun loadProfile() {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
