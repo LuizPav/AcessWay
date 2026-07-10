@@ -102,15 +102,13 @@ fun MapBase(
     }
 
     LaunchedEffect(hasLocationPermission) {
-
-        if (hasLocationPermission) {
-
+        if (hasLocationPermission && viewModel.selectedStop == null) {
             val fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(context)
 
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location ->
-                    if (location != null) {
+                    if (location != null && viewModel.selectedStop == null) {
                         camPosState.move(
                             CameraUpdateFactory.newCameraPosition(
                                 CameraPosition.fromLatLngZoom(
@@ -119,7 +117,7 @@ fun MapBase(
                                 )
                             )
                         )
-                    } else {
+                    } else if (viewModel.selectedStop == null) {
                         try {
                             val locationRequest = com.google.android.gms.location.LocationRequest.Builder(
                                 com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
@@ -130,15 +128,17 @@ fun MapBase(
                                 locationRequest,
                                 object : com.google.android.gms.location.LocationCallback() {
                                     override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
-                                        result.lastLocation?.let { freshLoc ->
-                                            camPosState.move(
-                                                CameraUpdateFactory.newCameraPosition(
-                                                    CameraPosition.fromLatLngZoom(
-                                                        LatLng(freshLoc.latitude, freshLoc.longitude),
-                                                        15f
+                                        if (viewModel.selectedStop == null) {
+                                            result.lastLocation?.let { freshLoc ->
+                                                camPosState.move(
+                                                    CameraUpdateFactory.newCameraPosition(
+                                                        CameraPosition.fromLatLngZoom(
+                                                            LatLng(freshLoc.latitude, freshLoc.longitude),
+                                                            15f
+                                                        )
                                                     )
                                                 )
-                                            )
+                                            }
                                         }
                                     }
                                 },
@@ -158,6 +158,18 @@ fun MapBase(
             if (center.latitude != 0.0 && center.longitude != 0.0) {
                 viewModel.loadStopsFromApi(center.latitude, center.longitude)
             }
+        }
+    }
+
+    LaunchedEffect(viewModel.selectedStop) {
+        viewModel.selectedStop?.location?.let { location ->
+            // Offset the target latitude slightly South so the marker stays above the bottom sheet
+            val target = LatLng(location.latitude - 0.00030, location.longitude)
+            camPosState.animate(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.fromLatLngZoom(target, 20f)
+                )
+            )
         }
     }
 

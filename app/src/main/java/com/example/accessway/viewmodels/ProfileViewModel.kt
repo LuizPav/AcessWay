@@ -71,6 +71,7 @@ class ProfileViewModel : ViewModel() {
     fun updateWheelchair(needed: Boolean) = updateProfile(profileState.copy(needsWheelchair = needed))
     fun updateTactilePaving(needed: Boolean) = updateProfile(profileState.copy(needsTactilePaving = needed))
     fun updateAudioAlerts(needed: Boolean) = updateProfile(profileState.copy(needsAudioAlerts = needed))
+    fun updateSearchRadius(radius: Int) = updateProfile(profileState.copy(searchRadius = radius))
 
     fun toggleEditNameDialog(show: Boolean) { isEditingName = show }
 

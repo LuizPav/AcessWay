@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onOpenMenu: () -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.loadSearchRadius()
+    }
 
 
     Box(
@@ -37,7 +41,10 @@ fun HomeScreen(
                     start = 16.dp,
                     end = 16.dp
                 ),
-            onMenuClick = onOpenMenu
+            onMenuClick = onOpenMenu,
+            onSearchSubmit = { query ->
+                viewModel.searchStops(query)
+            }
         )
 
         RetractableBottomSheet(

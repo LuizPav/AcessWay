@@ -25,9 +25,11 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -160,6 +162,21 @@ fun ProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
+                    Text("Configurações do Mapa", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LogoBlue, modifier = Modifier.padding(bottom = 8.dp))
+
+                    // Card de Configurações do Mapa (Raio de busca)
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            PreferenceSliderRow(
+                                title = "Raio de Busca de Paradas",
+                                desc = "Define o raio em metros para buscar paradas ao redor.",
+                                icon = Icons.Default.Search,
+                                value = profile.searchRadius
+                            ) { viewModel.updateSearchRadius(it) }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                     Text("Configurações da Conta", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LogoBlue, modifier = Modifier.padding(bottom = 8.dp))
 
                     // Card Configs
@@ -205,5 +222,41 @@ fun ConfigRow(title: String, icon: androidx.compose.ui.graphics.vector.ImageVect
         Icon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
         Text(title, modifier = Modifier.weight(1f).padding(start = 16.dp), color = titleColor, fontWeight = FontWeight.SemiBold)
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextLightGray)
+    }
+}
+
+@Composable
+fun PreferenceSliderRow(
+    title: String,
+    desc: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: Int,
+    onValueChange: (Int) -> Unit
+) {
+    var sliderValue by remember(value) { mutableStateOf(value.toFloat()) }
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = LogoBlue, modifier = Modifier.size(24.dp))
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(title, fontWeight = FontWeight.Bold, color = TextDarkGray)
+                Text(desc, fontSize = 12.sp, color = TextMediumGray)
+            }
+            Text(
+                text = "${sliderValue.toInt()}m",
+                fontWeight = FontWeight.Bold,
+                color = LogoBlue,
+                fontSize = 16.sp
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            onValueChangeFinished = {
+                onValueChange(sliderValue.toInt())
+            },
+            valueRange = 100f..5000f,
+            steps = 48
+        )
     }
 }

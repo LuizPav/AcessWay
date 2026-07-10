@@ -24,18 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 
 @Composable
 fun SearchBar(
     modifier: Modifier = Modifier,
     onMenuClick: () -> Unit,
+    onSearchSubmit: (String) -> Unit
 ) {
     var textSearch by remember { mutableStateOf("") }
-
-
-    fun onSearchSubmit(txt: String) {
-        println(txt);
-    }
 
     Row(
         modifier = modifier.padding(top = 4.dp),
@@ -78,6 +77,14 @@ fun SearchBar(
                     )
                 }
             },
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search
+            ),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    onSearchSubmit(textSearch)
+                }
+            ),
             singleLine = true
         )
     }

@@ -7,5 +7,6 @@ data class UserProfile(
     val avatarUrl: String? = null,
     val needsWheelchair: Boolean = false,
     val needsTactilePaving: Boolean = false,
-    val needsAudioAlerts: Boolean = false
+    val needsAudioAlerts: Boolean = false,
+    val searchRadius: Int = 1000
 )

@@ -2,6 +2,7 @@ package com.example.accessway.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +52,9 @@ import com.example.accessway.viewmodels.FavoritesViewModel
 @Composable
 fun FavoritesScreen(
     onOpenMenu: () -> Unit = {},
-    viewModel: FavoritesViewModel = viewModel()
+    viewModel: FavoritesViewModel = viewModel(),
+    onFavoriteClick: (Favorite) -> Unit = {},
+    onFavoriteRemoved: (String) -> Unit = {}
 ) {
     LaunchedEffect(Unit) {
         viewModel.loadFavoriteStops()
@@ -152,7 +155,11 @@ fun FavoritesScreen(
                     items(favoritesList, key = { "place_${it.id}" }) { favorite ->
                         FavoriteCard(
                             favorite = favorite,
-                            onDeleteClick = { viewModel.removeFavorite(favorite.id) }
+                            onDeleteClick = {
+                                viewModel.removeFavorite(favorite.id)
+                                onFavoriteRemoved(favorite.id)
+                            },
+                            onClick = { onFavoriteClick(favorite) }
                         )
                     }
                 }
@@ -170,7 +177,11 @@ fun FavoritesScreen(
                     items(viewModel.favoriteStops, key = { "stop_${it.id}" }) { favorite ->
                         FavoriteCard(
                             favorite = favorite,
-                            onDeleteClick = { viewModel.removeFavorite(favorite.id) }
+                            onDeleteClick = {
+                                viewModel.removeFavorite(favorite.id)
+                                onFavoriteRemoved(favorite.id)
+                            },
+                            onClick = { onFavoriteClick(favorite) }
                         )
                     }
                 }
@@ -186,11 +197,13 @@ fun FavoritesScreen(
 @Composable
 fun FavoriteCard(
     favorite: Favorite,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -270,7 +283,7 @@ fun FavoriteCard(
                     .size(36.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Default.Favorite,
                     contentDescription = "Remover Favorito",
                     tint = Color.Red,
                     modifier = Modifier.size(20.dp)

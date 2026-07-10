@@ -26,6 +26,12 @@ interface StopApiService {
         @Query("longitude") longitude: Double,
         @Query("radius") radius: Int
     ): List<ApiStop>
+
+    @GET("points")
+    suspend fun searchPoints(
+        @Query("name") name: String? = null,
+        @Query("description") description: String? = null
+    ): List<ApiStop>
 }
 
 object TokenManager {

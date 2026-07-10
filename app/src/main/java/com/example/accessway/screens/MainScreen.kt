@@ -38,6 +38,9 @@ import androidx.navigation.compose.rememberNavController
 import com.example.accessway.navigation.Screen
 import com.example.accessway.navigation.DrawerNavigationBar
 import com.example.accessway.viewmodels.MainViewModel
+import com.example.accessway.viewmodels.HomeViewModel
+import com.example.accessway.model.Stop
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,7 +56,8 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     val mainViewModel: MainViewModel = viewModel()
-    val profileViewModel = ProfileViewModel();
+    val profileViewModel = ProfileViewModel()
+    val homeViewModel: HomeViewModel = viewModel()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -153,6 +157,7 @@ fun MainScreen(
             ) {
                 composable(Screen.Home.route) {
                     HomeScreen(
+                        viewModel = homeViewModel,
                         onOpenMenu = { scope.launch { drawerState.open() } }
                     )
                 }
@@ -163,9 +168,30 @@ fun MainScreen(
                     )
                 }
 
-                composable(Screen.Favorites.route) {
+                 composable(Screen.Favorites.route) {
                     FavoritesScreen(
-                        onOpenMenu = { scope.launch { drawerState.open() } }
+                        onOpenMenu = { scope.launch { drawerState.open() } },
+                        onFavoriteClick = { favorite ->
+                            val stop = Stop(
+                                id = favorite.id,
+                                name = favorite.name,
+                                address = favorite.address,
+                                avaliation = favorite.accessibilityRating.toFloat(),
+                                location = LatLng(favorite.latitude, favorite.longitude),
+                                isBusStop = true,
+                                ratingAcessibilidade = favorite.accessibilityRating
+                            )
+                            homeViewModel.selectedStop = stop
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) {
+                                    inclusive = false
+                                }
+                            }
+                        },
+                        onFavoriteRemoved = { id ->
+                            homeViewModel.favoriteStops.removeAll { it.id == id || it.name == id }
+                            homeViewModel.loadFavoriteStops()
+                        }
                     )
                 }
 

@@ -11,6 +11,7 @@ import com.example.accessway.model.Stop
 import com.example.accessway.network.RetrofitClient
 import com.example.accessway.repository.FavoriteStopsRepository
 import com.example.accessway.repository.AuthRepository
+import com.example.accessway.repository.UserRepository
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -30,6 +31,22 @@ class HomeViewModel : ViewModel() {
     private val communityStopsRepository = com.example.accessway.repository.CommunityStopsRepository()
 
     val favoriteStops = mutableStateListOf<Stop>()
+
+    var searchRadius by mutableStateOf(1000)
+        private set
+
+    fun loadSearchRadius() {
+        val uid = authRepository.getCurrentUserUid() ?: return
+        viewModelScope.launch {
+            UserRepository().getUser(uid)
+                .onSuccess { user ->
+                    searchRadius = user.searchRadius
+                }
+                .onFailure {
+                    // Keep default 1000
+                }
+        }
+    }
 
     fun loadFavoriteStops() {
         val uid = authRepository.getCurrentUserUid() ?: return
@@ -97,7 +114,7 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    fun loadStopsFromApi(lat: Double, lon: Double, radius: Int = 1000) {
+    fun loadStopsFromApi(lat: Double, lon: Double, radius: Int = searchRadius) {
         viewModelScope.launch {
             try {
                 val apiStops = RetrofitClient.instance.getStops(lat, lon, radius)
@@ -131,16 +148,58 @@ class HomeViewModel : ViewModel() {
                     }
                 }
 
-                evaluatedStops.forEach { stop ->
-                    val idx = _stops.indexOfFirst { it.id == stop.id || (it.name == stop.name && it.id.isEmpty()) }
-                    if (idx != -1) {
-                        _stops[idx] = stop
-                    } else {
-                        _stops.add(stop)
-                    }
-                }
+                _stops.clear()
+                _stops.addAll(evaluatedStops)
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Error loading stops from Retrofit", e)
+            }
+        }
+    }
+
+    fun searchStops(query: String) {
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            try {
+                val apiStops = RetrofitClient.instance.searchPoints(name = query)
+                val newStops = apiStops.take(1).map { apiStop ->
+                    Stop(
+                        id = apiStop.id,
+                        name = apiStop.name,
+                        location = LatLng(apiStop.latitude, apiStop.longitude),
+                        address = apiStop.description ?: "Recife, PE",
+                        isBusStop = true
+                    )
+                }
+
+                val stopIds = newStops.map { it.id.ifEmpty { it.name } }
+                val evaluationsResult = communityStopsRepository.getEvaluations(stopIds)
+
+                val evaluatedStops = newStops.map { stop ->
+                    val stopId = stop.id.ifEmpty { stop.name }
+                    val eval = evaluationsResult.getOrNull()?.get(stopId)
+                    if (eval != null) {
+                        stop.copy(
+                            avaliation = eval.avaliation,
+                            reviewCount = eval.reviewCount,
+                            ratingAcessibilidade = eval.ratingAcessibilidade,
+                            ratingPisoTatil = eval.ratingPisoTatil,
+                            ratingIluminacao = eval.ratingIluminacao,
+                            ratingCobertura = eval.ratingCobertura,
+                            ratingDistribution = eval.ratingDistribution
+                        )
+                    } else {
+                        stop
+                    }
+                }
+
+                _stops.clear()
+                _stops.addAll(evaluatedStops)
+
+                if (evaluatedStops.isNotEmpty()) {
+                    selectedStop = evaluatedStops.first()
+                }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Error searching stops", e)
             }
         }
     }
@@ -156,103 +215,7 @@ class HomeViewModel : ViewModel() {
     val userEvaluations = mutableStateMapOf<String, UserStopEvaluation>()
 
     init {
-        // Mock bus stops in Recife with same metadata structure as registered ones
-        _stops.add(
-            Stop(
-                name = "Parada Metrô Recife",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.058300, -34.884800),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
-        _stops.add(
-            Stop(
-                name = "Parada Treze de Maio (Parque)",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.054200, -34.881300),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
-        _stops.add(
-            Stop(
-                name = "Parada Av. Conde da Boa Vista",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.059400, -34.888500),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
-        _stops.add(
-            Stop(
-                name = "Parada Praça do Derby",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.056600, -34.900900),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
-        _stops.add(
-            Stop(
-                name = "Parada Cais de Santa Rita",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.066700, -34.878900),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
-        _stops.add(
-            Stop(
-                name = "Parada Marco Zero",
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = LatLng(-8.063100, -34.871100),
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
-        )
+        loadSearchRadius()
         loadFavoriteStops()
     }
 
