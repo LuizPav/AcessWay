@@ -14,5 +14,6 @@ data class Stop(
     val ratingPisoTatil: Int = 2,
     val ratingIluminacao: Int = 2,
     val ratingCobertura: Int = 2,
-    val ratingDistribution: List<Int> = listOf(0, 1, 2, 3, 4) // 1 to 5 stars counts
+    val ratingDistribution: List<Int> = listOf(0, 1, 2, 3, 4), // 1 to 5 stars counts
+    val id: String = ""
 )

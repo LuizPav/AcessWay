@@ -6,8 +6,14 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.accessway.model.Stop
+import com.example.accessway.network.RetrofitClient
+import com.example.accessway.repository.FavoriteStopsRepository
+import com.example.accessway.repository.AuthRepository
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.launch
+import android.util.Log
 
 data class UserStopEvaluation(
     val ratingAcessibilidade: Int,
@@ -18,6 +24,136 @@ data class UserStopEvaluation(
 )
 
 class HomeViewModel : ViewModel() {
+
+    private val favoriteStopsRepository = FavoriteStopsRepository()
+    private val authRepository = AuthRepository()
+    private val communityStopsRepository = com.example.accessway.repository.CommunityStopsRepository()
+
+    val favoriteStops = mutableStateListOf<Stop>()
+
+    fun loadFavoriteStops() {
+        val uid = authRepository.getCurrentUserUid() ?: return
+        viewModelScope.launch {
+            favoriteStopsRepository.getFavoriteStops(uid)
+                .onSuccess { favorites ->
+                    val stopIds = favorites.map { it.id.ifEmpty { it.name } }
+                    val evaluationsResult = communityStopsRepository.getEvaluations(stopIds)
+                    
+                    val evaluatedFavorites = favorites.map { stop ->
+                        val stopId = stop.id.ifEmpty { stop.name }
+                        val eval = evaluationsResult.getOrNull()?.get(stopId)
+                        if (eval != null) {
+                            stop.copy(
+                                avaliation = eval.avaliation,
+                                reviewCount = eval.reviewCount,
+                                ratingAcessibilidade = eval.ratingAcessibilidade,
+                                ratingPisoTatil = eval.ratingPisoTatil,
+                                ratingIluminacao = eval.ratingIluminacao,
+                                ratingCobertura = eval.ratingCobertura,
+                                ratingDistribution = eval.ratingDistribution
+                            )
+                        } else {
+                            stop
+                        }
+                    }
+                    favoriteStops.clear()
+                    favoriteStops.addAll(evaluatedFavorites)
+                }
+                .onFailure {
+                    Log.e("HomeViewModel", "Error loading favorites from Firestore", it)
+                }
+        }
+    }
+
+    fun isFavorite(stop: Stop): Boolean {
+        val stopId = stop.id.ifEmpty { stop.name }
+        return favoriteStops.any { it.id == stopId || it.name == stop.name }
+    }
+
+    fun toggleFavorite(stop: Stop) {
+        val uid = authRepository.getCurrentUserUid() ?: return
+        val stopId = stop.id.ifEmpty { stop.name }
+        val currentlyFavorite = isFavorite(stop)
+
+        viewModelScope.launch {
+            if (currentlyFavorite) {
+                favoriteStopsRepository.removeFavoriteStop(uid, stopId)
+                    .onSuccess {
+                        favoriteStops.removeAll { it.id == stopId || it.name == stop.name }
+                    }
+                    .onFailure {
+                        Log.e("HomeViewModel", "Error removing favorite stop", it)
+                    }
+            } else {
+                favoriteStopsRepository.saveFavoriteStop(uid, stop)
+                    .onSuccess {
+                        val favoriteStop = stop.copy(id = stopId)
+                        favoriteStops.add(favoriteStop)
+                    }
+                    .onFailure {
+                        Log.e("HomeViewModel", "Error saving favorite stop", it)
+                    }
+            }
+        }
+    }
+
+    fun loadStopsFromApi(lat: Double, lon: Double, radius: Int = 1000) {
+        viewModelScope.launch {
+            try {
+                // Ensure we have a valid token first
+                if (com.example.accessway.network.TokenManager.token.isNullOrEmpty()) {
+                    val cpf = com.example.accessway.BuildConfig.STOPS_API_CPF
+                    val password = com.example.accessway.BuildConfig.STOPS_API_PASSWORD
+                    val loginRes = RetrofitClient.instance.login(
+                        com.example.accessway.model.LoginRequest(cpf, password)
+                    )
+                    com.example.accessway.network.TokenManager.token = loginRes.token
+                }
+
+                val apiStops = RetrofitClient.instance.getStops(lat, lon, radius)
+                val newStops = apiStops.map { apiStop ->
+                    Stop(
+                        id = apiStop.id,
+                        name = apiStop.name,
+                        location = LatLng(apiStop.latitude, apiStop.longitude),
+                        isBusStop = true
+                    )
+                }
+
+                val stopIds = newStops.map { it.id.ifEmpty { it.name } }
+                val evaluationsResult = communityStopsRepository.getEvaluations(stopIds)
+
+                val evaluatedStops = newStops.map { stop ->
+                    val stopId = stop.id.ifEmpty { stop.name }
+                    val eval = evaluationsResult.getOrNull()?.get(stopId)
+                    if (eval != null) {
+                        stop.copy(
+                            avaliation = eval.avaliation,
+                            reviewCount = eval.reviewCount,
+                            ratingAcessibilidade = eval.ratingAcessibilidade,
+                            ratingPisoTatil = eval.ratingPisoTatil,
+                            ratingIluminacao = eval.ratingIluminacao,
+                            ratingCobertura = eval.ratingCobertura,
+                            ratingDistribution = eval.ratingDistribution
+                        )
+                    } else {
+                        stop
+                    }
+                }
+
+                evaluatedStops.forEach { stop ->
+                    val idx = _stops.indexOfFirst { it.id == stop.id || (it.name == stop.name && it.id.isEmpty()) }
+                    if (idx != -1) {
+                        _stops[idx] = stop
+                    } else {
+                        _stops.add(stop)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Error loading stops from Retrofit", e)
+            }
+        }
+    }
 
     private val _stops = mutableStateListOf<Stop>()
 
@@ -30,103 +166,104 @@ class HomeViewModel : ViewModel() {
     val userEvaluations = mutableStateMapOf<String, UserStopEvaluation>()
 
     init {
-        // Mock bus stops in Recife with detailed accessibility attributes and coordinates
+        // Mock bus stops in Recife with same metadata structure as registered ones
         _stops.add(
             Stop(
                 name = "Parada Metrô Recife",
-                address = "Cais de Santa Rita, s/n - São José",
-                avaliation = 4.5f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.058300, -34.884800),
                 isBusStop = true,
-                lines = listOf("116 - Circular (Príncipe)", "224 - UR-11 / Derby", "166 - TI Cajueiro Seco"),
-                reviewCount = 84,
-                ratingAcessibilidade = 3, // Bom
-                ratingPisoTatil = 2,       // Parcial
-                ratingIluminacao = 3,      // Bom
-                ratingCobertura = 1,       // Ruim/Ausente
-                ratingDistribution = listOf(5, 7, 12, 30, 30)
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
+                ratingAcessibilidade = 2,
+                ratingPisoTatil = 2,
+                ratingIluminacao = 2,
+                ratingCobertura = 2,
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
         _stops.add(
             Stop(
                 name = "Parada Treze de Maio (Parque)",
-                address = "Av. Visconde de Suassuna, 150 - Santo Amaro",
-                avaliation = 3.8f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.054200, -34.881300),
                 isBusStop = true,
-                lines = listOf("522 - Dois Irmãos (Rui Barbosa)", "644 - Largo do Maracanã", "741 - Dois Unidos"),
-                reviewCount = 45,
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
                 ratingAcessibilidade = 2,
-                ratingPisoTatil = 1,
-                ratingIluminacao = 3,
+                ratingPisoTatil = 2,
+                ratingIluminacao = 2,
                 ratingCobertura = 2,
-                ratingDistribution = listOf(5, 8, 12, 10, 10)
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
         _stops.add(
             Stop(
                 name = "Parada Av. Conde da Boa Vista",
-                address = "Av. Conde da Boa Vista, 450 - Boa Vista",
-                avaliation = 4.2f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.059400, -34.888500),
                 isBusStop = true,
-                lines = listOf("101 - Circular (Conde da Boa Vista)", "1983 - Rio Doce / Princesa Isabel", "2437 - TI Caxangá"),
-                reviewCount = 152,
-                ratingAcessibilidade = 3,
-                ratingPisoTatil = 3,
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
+                ratingAcessibilidade = 2,
+                ratingPisoTatil = 2,
                 ratingIluminacao = 2,
-                ratingCobertura = 1,
-                ratingDistribution = listOf(10, 12, 20, 50, 60)
+                ratingCobertura = 2,
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
         _stops.add(
             Stop(
                 name = "Parada Praça do Derby",
-                address = "Praça do Derby, s/n - Derby",
-                avaliation = 4.7f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.056600, -34.900900),
                 isBusStop = true,
-                lines = listOf("2040 - CDU / Caxangá / Boa Viagem", "050 - PE-15 / Boa Viagem", "2480 - TI Camaragibe / Derby"),
-                reviewCount = 210,
-                ratingAcessibilidade = 3,
-                ratingPisoTatil = 3,
-                ratingIluminacao = 3,
-                ratingCobertura = 3,
-                ratingDistribution = listOf(2, 8, 15, 65, 120)
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
+                ratingAcessibilidade = 2,
+                ratingPisoTatil = 2,
+                ratingIluminacao = 2,
+                ratingCobertura = 2,
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
         _stops.add(
             Stop(
                 name = "Parada Cais de Santa Rita",
-                address = "Av. Alfredo Lisboa, s/n - Recife Antigo",
-                avaliation = 2.9f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.066700, -34.878900),
                 isBusStop = true,
-                lines = listOf("191 - IPSEP (Cônego Roma)", "107 - Circular (Cabugá / Prefeitura)", "032 - Setúbal"),
-                reviewCount = 64,
-                ratingAcessibilidade = 1,
-                ratingPisoTatil = 1,
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
+                ratingAcessibilidade = 2,
+                ratingPisoTatil = 2,
                 ratingIluminacao = 2,
                 ratingCobertura = 2,
-                ratingDistribution = listOf(20, 15, 15, 10, 4)
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
         _stops.add(
             Stop(
                 name = "Parada Marco Zero",
-                address = "Av. Rio Branco, 20 - Recife Antigo",
-                avaliation = 4.6f,
+                address = "Recife, PE",
+                avaliation = 4.0f,
                 location = LatLng(-8.063100, -34.871100),
                 isBusStop = true,
-                lines = listOf("032 - Setúbal (Conde da Boa Vista)", "018 - Brasília Teimosa", "014 - Brasília Teimosa"),
-                reviewCount = 128,
-                ratingAcessibilidade = 3,
+                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+                reviewCount = 1,
+                ratingAcessibilidade = 2,
                 ratingPisoTatil = 2,
-                ratingIluminacao = 3,
-                ratingCobertura = 3,
-                ratingDistribution = listOf(3, 5, 20, 45, 55)
+                ratingIluminacao = 2,
+                ratingCobertura = 2,
+                ratingDistribution = listOf(0, 0, 0, 1, 0)
             )
         )
+        loadFavoriteStops()
     }
 
     fun removeStop(stop: Stop) {
@@ -137,10 +274,10 @@ class HomeViewModel : ViewModel() {
         _stops.add(stop)
     }
 
-    fun registerPoint(location: LatLng) {
+    fun registerPoint(name: String, location: LatLng) {
         _stops.add(
             Stop(
-                name = "Nova Parada de Ônibus",
+                name = name,
                 address = "Recife, PE",
                 avaliation = 4.0f,
                 location = location,
@@ -206,8 +343,28 @@ class HomeViewModel : ViewModel() {
 
             _stops[index] = updatedStop
 
+            val favIndex = favoriteStops.indexOfFirst { it.id == updatedStop.id || (it.name == updatedStop.name && it.id.isEmpty()) }
+            if (favIndex != -1) {
+                favoriteStops[favIndex] = updatedStop
+            }
+
             if (selectedStop?.name == stopName) {
                 selectedStop = updatedStop
+            }
+
+            val stopId = updatedStop.id.ifEmpty { updatedStop.name }
+            viewModelScope.launch {
+                val evaluation = com.example.accessway.repository.StopEvaluation(
+                    id = stopId,
+                    avaliation = updatedStop.avaliation,
+                    reviewCount = updatedStop.reviewCount,
+                    ratingAcessibilidade = updatedStop.ratingAcessibilidade,
+                    ratingPisoTatil = updatedStop.ratingPisoTatil,
+                    ratingIluminacao = updatedStop.ratingIluminacao,
+                    ratingCobertura = updatedStop.ratingCobertura,
+                    ratingDistribution = updatedStop.ratingDistribution
+                )
+                communityStopsRepository.saveEvaluation(stopId, evaluation)
             }
         }
     }

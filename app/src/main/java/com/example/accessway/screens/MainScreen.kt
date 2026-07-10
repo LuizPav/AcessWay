@@ -1,5 +1,6 @@
 package com.example.accessway.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,13 +44,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.accessway.ui.theme.LogoBlue
+import com.example.accessway.viewmodels.ProfileViewModel
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun MainScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
     val mainViewModel: MainViewModel = viewModel()
+    val profileViewModel = ProfileViewModel();
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -122,7 +126,7 @@ fun MainScreen(
                             modifier = Modifier.size(100.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("User",
+                        Text(profileViewModel.profileState.name,
                             color = LogoBlue,
                             fontSize = 32.sp
                         )

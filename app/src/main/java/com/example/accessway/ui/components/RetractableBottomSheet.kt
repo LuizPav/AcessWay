@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.BorderOuter
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
@@ -166,6 +168,24 @@ fun RetractableBottomSheet(
                                 color = TextMediumGray
                             )
                         }
+
+                        val isFav = viewModel.isFavorite(stop)
+                        IconButton(
+                            onClick = { viewModel.toggleFavorite(stop) },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color.LightGray.copy(alpha = 0.2f))
+                                .size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Favoritar",
+                                tint = if (isFav) Color.Red else TextMediumGray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         IconButton(
                             onClick = onDismiss,

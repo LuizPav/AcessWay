@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +53,10 @@ fun FavoritesScreen(
     onOpenMenu: () -> Unit = {},
     viewModel: FavoritesViewModel = viewModel()
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.loadFavoriteStops()
+    }
+
     val favoritesList = viewModel.favorites
 
     Column(
@@ -91,7 +96,7 @@ fun FavoritesScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // --- FAVORITES LIST ---
-        if (favoritesList.isEmpty()) {
+        if (favoritesList.isEmpty() && viewModel.favoriteStops.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -134,12 +139,42 @@ fun FavoritesScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(favoritesList, key = { it.id }) { favorite ->
-                    FavoriteCard(
-                        favorite = favorite,
-                        onDeleteClick = { viewModel.removeFavorite(favorite.id) }
-                    )
+                if (favoritesList.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Locais Salvos",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LogoBlue,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    items(favoritesList, key = { "place_${it.id}" }) { favorite ->
+                        FavoriteCard(
+                            favorite = favorite,
+                            onDeleteClick = { viewModel.removeFavorite(favorite.id) }
+                        )
+                    }
                 }
+
+                if (viewModel.favoriteStops.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Paradas Favoritas",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LogoBlue,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+                    }
+                    items(viewModel.favoriteStops, key = { "stop_${it.id}" }) { favorite ->
+                        FavoriteCard(
+                            favorite = favorite,
+                            onDeleteClick = { viewModel.removeFavorite(favorite.id) }
+                        )
+                    }
+                }
+
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                 }
