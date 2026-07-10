@@ -146,15 +146,31 @@ class RegisterViewModel : ViewModel() {
 
                 },
 
-                onFailure = {
-
-                    authState =
-                        AuthState.Error(
-                            it.message ?: "Erro ao cadastrar."
-                        )
-
-                    errorMessage = it.message
-
+                onFailure = { throwable ->
+                    val msg = when (throwable) {
+                        is com.google.firebase.auth.FirebaseAuthUserCollisionException -> {
+                            "Este e-mail já está cadastrado."
+                        }
+                        is com.google.firebase.auth.FirebaseAuthWeakPasswordException -> {
+                            "A senha informada é muito fraca."
+                        }
+                        is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> {
+                            "O endereço de e-mail está mal formatado."
+                        }
+                        is com.google.firebase.FirebaseNetworkException -> {
+                            "Sem conexão com a internet. Verifique sua rede."
+                        }
+                        else -> {
+                            val message = throwable.message ?: ""
+                            when {
+                                message.contains("email already", ignoreCase = true) -> "Este e-mail já está cadastrado."
+                                message.contains("badly formatted", ignoreCase = true) -> "O endereço de e-mail está mal formatado."
+                                else -> "Erro ao cadastrar. Tente novamente."
+                            }
+                        }
+                    }
+                    authState = AuthState.Error(msg)
+                    errorMessage = msg
                 }
 
             )
