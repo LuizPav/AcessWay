@@ -100,16 +100,6 @@ class HomeViewModel : ViewModel() {
     fun loadStopsFromApi(lat: Double, lon: Double, radius: Int = 1000) {
         viewModelScope.launch {
             try {
-                // Ensure we have a valid token first
-                if (com.example.accessway.network.TokenManager.token.isNullOrEmpty()) {
-                    val cpf = com.example.accessway.BuildConfig.STOPS_API_CPF
-                    val password = com.example.accessway.BuildConfig.STOPS_API_PASSWORD
-                    val loginRes = RetrofitClient.instance.login(
-                        com.example.accessway.model.LoginRequest(cpf, password)
-                    )
-                    com.example.accessway.network.TokenManager.token = loginRes.token
-                }
-
                 val apiStops = RetrofitClient.instance.getStops(lat, lon, radius)
                 val newStops = apiStops.map { apiStop ->
                     Stop(

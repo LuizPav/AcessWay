@@ -14,16 +14,17 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface StopApiService {
     @POST("user/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
-    @GET("stop/{lat}/{lon}/{radius}")
+    @GET("points/proximity")
     suspend fun getStops(
-        @Path("lat") lat: Double,
-        @Path("lon") lon: Double,
-        @Path("radius") radius: Int
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double,
+        @Query("radius") radius: Int
     ): List<ApiStop>
 }
 
