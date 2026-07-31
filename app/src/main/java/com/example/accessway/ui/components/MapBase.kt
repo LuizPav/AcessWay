@@ -123,7 +123,6 @@ fun MapBase(
         ),
 
         onMapClick = { latLng ->
-            viewModel.registerPoint(latLng)
             // Auto select the registered stop to trigger the retractable bottom sheet
             viewModel.selectedStop = viewModel.stops.lastOrNull()
         }

@@ -3,6 +3,7 @@ package com.example.accessway.model
 import com.google.android.gms.maps.model.LatLng
 
 data class Stop(
+    val id: String = "",
     val name: String,
     val address: String = "Recife, PE",
     val avaliation: Float = 4.0f,

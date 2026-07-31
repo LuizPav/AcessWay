@@ -482,7 +482,7 @@ fun RetractableBottomSheet(
                                 Button(
                                     onClick = {
                                         viewModel.submitEvaluation(
-                                            stopName = stop.name,
+                                            stopId = stop.id,
                                             acessibilidade = tempAcessibilidade,
                                             pisoTatil = tempPisoTatil,
                                             iluminacao = tempIluminacao,
