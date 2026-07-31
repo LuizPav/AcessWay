@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,10 +28,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accessway.R
 import com.example.accessway.ui.components.TextField
-
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.accessway.ui.state.AuthState
+import com.example.accessway.ui.theme.BackgroundWhite
+import com.example.accessway.ui.theme.LinkBlue
+import com.example.accessway.ui.theme.PrimaryButtonBlue
+import com.example.accessway.ui.theme.TextDarkGray
+import com.example.accessway.ui.theme.TextMediumGray
 import com.example.accessway.viewmodels.LoginViewModel
 
 @Composable
@@ -41,35 +47,26 @@ fun LoginScreen(
 ) {
     val email = viewModel.email
     val senha = viewModel.senha
-    val isLoginEnabled = viewModel.isLoginEnabled
+    val authState = viewModel.authState
+    val errorMessage = viewModel.errorMessage
 
-    //TEXTO REGISTRE-SE
     val annotatedText = buildAnnotatedString {
-        withStyle(style = SpanStyle(color = Color(0xFF555555))) {
+        withStyle(style = SpanStyle(color = TextMediumGray)) {
             append("Ainda não possui conta? ")
         }
-
-        withStyle(
-            style = SpanStyle(
-                color = Color(0xFF1A73E8),
-                fontWeight = FontWeight.Bold
-            )
-        ) {
+        withStyle(style = SpanStyle(color = LinkBlue, fontWeight = FontWeight.Bold)) {
             append("registre-se")
         }
     }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundWhite)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
-        // LOGO
         Image(
             painter = painterResource(id = R.drawable.logo_completo),
             contentDescription = "Logo App",
@@ -82,12 +79,11 @@ fun LoginScreen(
             text = "Bem-vindo",
             fontSize = 28.sp,
             style = MaterialTheme.typography.titleLarge,
-            color = Color.DarkGray
+            color = TextDarkGray
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        //Email
         TextField(
             value = email,
             label = "Email",
@@ -98,7 +94,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // SENHA
         TextField(
             value = senha,
             label = "Senha",
@@ -107,6 +102,16 @@ fun LoginScreen(
             isPassword = true,
             keyboardType = KeyboardType.Password,
         )
+
+        // Exibição de Erro
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
         Text(
             text = annotatedText,
@@ -119,27 +124,25 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // BOTÃO LOGIN
-        Button(
-            onClick = onLoginClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1976D2),
-                contentColor = Color.White,
-                disabledContentColor = Color.White,
-                disabledContainerColor = MaterialTheme.colorScheme.onBackground
-            ),
-            enabled = isLoginEnabled
-        ) {
-            Text(
-                text = "Login",
-                fontSize = 18.sp
-            )
+        // Botão ou Loading
+        if (authState is AuthState.Loading) {
+            CircularProgressIndicator(color = PrimaryButtonBlue)
+        } else {
+            Button(
+                onClick = { viewModel.login(onSuccess = onLoginClick) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryButtonBlue,
+                    contentColor = Color.White
+                ),
+                // Lógica de validação direta aqui
+                enabled = email.isNotBlank() && senha.isNotBlank()
+            ) {
+                Text(text = "Login", fontSize = 18.sp)
+            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
