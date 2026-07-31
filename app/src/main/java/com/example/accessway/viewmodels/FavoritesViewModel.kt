@@ -9,15 +9,12 @@ import com.example.accessway.repository.AuthRepository
 import kotlinx.coroutines.launch
 import android.util.Log
 
+private const val TAG = "FavoritesViewModel"
+
 class FavoritesViewModel : ViewModel() {
 
     private val favoriteStopsRepository = FavoriteStopsRepository()
     private val authRepository = AuthRepository()
-
-    private val _favoritesList = mutableStateListOf<Favorite>()
-
-    val favorites: List<Favorite>
-        get() = _favoritesList
 
     val favoriteStops = mutableStateListOf<Favorite>()
 
@@ -27,6 +24,7 @@ class FavoritesViewModel : ViewModel() {
 
     fun loadFavoriteStops() {
         val uid = authRepository.getCurrentUserUid() ?: return
+        Log.d(TAG, "loadFavoriteStops called for uid=$uid")
         viewModelScope.launch {
             favoriteStopsRepository.getFavoriteStops(uid)
                 .onSuccess { stops ->
@@ -43,31 +41,26 @@ class FavoritesViewModel : ViewModel() {
                             )
                         }
                     )
+                    Log.d(TAG, "Loaded ${favoriteStops.size} favorite stops into ViewModel")
                 }
                 .onFailure {
-                    Log.e("FavoritesViewModel", "Error loading favorite stops", it)
+                    Log.e(TAG, "Error loading favorite stops for uid=$uid", it)
                 }
         }
     }
 
     fun removeFavorite(id: String) {
-        if (_favoritesList.any { it.id == id }) {
-            _favoritesList.removeAll { it.id == id }
-        } else {
-            val uid = authRepository.getCurrentUserUid() ?: return
-            viewModelScope.launch {
-                favoriteStopsRepository.removeFavoriteStop(uid, id)
-                    .onSuccess {
-                        favoriteStops.removeAll { it.id == id }
-                    }
-                    .onFailure {
-                        Log.e("FavoritesViewModel", "Error removing favorite stop", it)
-                    }
-            }
+        Log.d(TAG, "removeFavorite called for id=$id")
+        val uid = authRepository.getCurrentUserUid() ?: return
+        viewModelScope.launch {
+            favoriteStopsRepository.removeFavoriteStop(uid, id)
+                .onSuccess {
+                    favoriteStops.removeAll { it.id == id }
+                    Log.d(TAG, "Successfully removed favorite stop $id from Firestore")
+                }
+                .onFailure {
+                    Log.e(TAG, "Error removing favorite stop $id from Firestore", it)
+                }
         }
-    }
-
-    fun addFavorite(favorite: Favorite) {
-        _favoritesList.add(favorite)
     }
 }

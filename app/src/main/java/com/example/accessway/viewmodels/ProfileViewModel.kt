@@ -11,6 +11,8 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.util.Log
 
+private const val TAG = "ProfileViewModel"
+
 class ProfileViewModel : ViewModel() {
     private val userRepository = UserRepository()
     private val auth = FirebaseAuth.getInstance()
@@ -23,26 +25,41 @@ class ProfileViewModel : ViewModel() {
 
     var isEditingName by mutableStateOf(false)
 
-    // Dentro do seu ProfileViewModel
     init {
         loadProfile()
     }
 
     fun loadProfile() {
-        val uid = auth.currentUser?.uid ?: return
+        val currentUser = auth.currentUser
+        val uid = currentUser?.uid ?: return
+        Log.d(TAG, "loadProfile called for uid=$uid")
 
-        // Mostra que está carregando
+        val email = currentUser.email ?: ""
+        val fallbackName = currentUser.displayName?.ifEmpty { null }
+            ?: email.substringBefore("@").replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+
+        if (profileState.uid != uid || profileState.name.isEmpty()) {
+            profileState = UserProfile(
+                uid = uid,
+                email = email,
+                name = fallbackName
+            )
+        }
+
         isLoading = true
 
         viewModelScope.launch {
             userRepository.getUser(uid)
                 .onSuccess { user ->
-                    // Aqui garantimos que o estado foi atualizado com o que está no banco
-                    profileState = user
+                    profileState = user.copy(
+                        name = user.name.ifEmpty { fallbackName },
+                        email = user.email.ifEmpty { email }
+                    )
                     isLoading = false
+                    Log.d(TAG, "Successfully loaded profile for ${user.name}")
                 }
                 .onFailure {
-                    Log.e("ProfileDebug", "Falha ao carregar perfil: ${it.message}")
+                    Log.e(TAG, "Failed to load profile for uid=$uid", it)
                     isLoading = false
                 }
         }
@@ -50,15 +67,15 @@ class ProfileViewModel : ViewModel() {
 
     private fun updateProfile(updatedProfile: UserProfile) {
         profileState = updatedProfile
-        Log.d("ProfileDebug", "Tentando salvar: $updatedProfile") // ADICIONE ISSO
+        Log.d(TAG, "Updating user profile: $updatedProfile")
         viewModelScope.launch {
-            val result = userRepository.saveUser(updatedProfile)
-            result.onFailure {
-                Log.e("ProfileDebug", "ERRO NO FIRESTORE: ${it.message}") // ADICIONE ISSO
-            }
-            result.onSuccess {
-                Log.d("ProfileDebug", "SUCESSO AO SALVAR!") // ADICIONE ISSO
-            }
+            userRepository.saveUser(updatedProfile)
+                .onSuccess {
+                    Log.d(TAG, "Successfully updated user profile in Firestore")
+                }
+                .onFailure {
+                    Log.e(TAG, "Error updating profile in Firestore", it)
+                }
         }
     }
 

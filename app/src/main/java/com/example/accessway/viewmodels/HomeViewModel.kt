@@ -24,6 +24,8 @@ data class UserStopEvaluation(
     val userStars: Int
 )
 
+private const val TAG = "HomeViewModel"
+
 class HomeViewModel : ViewModel() {
 
     private val favoriteStopsRepository = FavoriteStopsRepository()
@@ -35,20 +37,36 @@ class HomeViewModel : ViewModel() {
     var searchRadius by mutableStateOf(1000)
         private set
 
+    private var lastUid: String? = null
+
+    private fun checkUserSession() {
+        val currentUid = authRepository.getCurrentUserUid()
+        if (currentUid != lastUid) {
+            Log.d(TAG, "User session changed from $lastUid to $currentUid - clearing stale in-memory evaluations")
+            userEvaluations.clear()
+            favoriteStops.clear()
+            lastUid = currentUid
+        }
+    }
+
     fun loadSearchRadius() {
+        checkUserSession()
         val uid = authRepository.getCurrentUserUid() ?: return
+        Log.d(TAG, "loadSearchRadius called for uid=$uid")
         viewModelScope.launch {
             UserRepository().getUser(uid)
                 .onSuccess { user ->
                     searchRadius = user.searchRadius
+                    Log.d(TAG, "Loaded user search radius: ${searchRadius}m")
                 }
                 .onFailure {
-                    // Keep default 1000
+                    Log.w(TAG, "Could not load user search radius, keeping default 1000m", it)
                 }
         }
     }
 
     fun loadFavoriteStops() {
+        checkUserSession()
         val uid = authRepository.getCurrentUserUid() ?: return
         viewModelScope.launch {
             favoriteStopsRepository.getFavoriteStops(uid)
@@ -196,7 +214,7 @@ class HomeViewModel : ViewModel() {
                 _stops.addAll(evaluatedStops)
 
                 if (evaluatedStops.isNotEmpty()) {
-                    selectedStop = evaluatedStops.first()
+                    selectStop(evaluatedStops.first())
                 }
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Error searching stops", e)
@@ -210,6 +228,46 @@ class HomeViewModel : ViewModel() {
         get() = _stops
 
     var selectedStop by mutableStateOf<Stop?>(null)
+
+    fun selectStop(stop: Stop?) {
+        checkUserSession()
+        selectedStop = stop
+        if (stop != null) {
+            val uid = authRepository.getCurrentUserUid()
+            val stopId = stop.id.ifEmpty { stop.name }
+            if (uid == null) {
+                userEvaluations.remove(stop.name)
+                userEvaluations.remove(stopId)
+                return
+            }
+            viewModelScope.launch {
+                communityStopsRepository.getUserEvaluation(stopId, uid)
+                    .onSuccess { review ->
+                        if (review != null) {
+                            val eval = UserStopEvaluation(
+                                ratingAcessibilidade = review.ratingAcessibilidade,
+                                ratingPisoTatil = review.ratingPisoTatil,
+                                ratingIluminacao = review.ratingIluminacao,
+                                ratingCobertura = review.ratingCobertura,
+                                userStars = review.userStars
+                            )
+                            userEvaluations[stop.name] = eval
+                            userEvaluations[stopId] = eval
+                            Log.d(TAG, "Loaded evaluation for user $uid on stop $stopId: ${review.userStars} stars")
+                        } else {
+                            userEvaluations.remove(stop.name)
+                            userEvaluations.remove(stopId)
+                            Log.d(TAG, "No evaluation found for user $uid on stop $stopId")
+                        }
+                    }
+                    .onFailure {
+                        userEvaluations.remove(stop.name)
+                        userEvaluations.remove(stopId)
+                        Log.e(TAG, "Failed to fetch user evaluation for stop $stopId", it)
+                    }
+            }
+        }
+    }
 
     // In-memory user evaluations per stop (keyed by stop name)
     val userEvaluations = mutableStateMapOf<String, UserStopEvaluation>()
@@ -228,22 +286,22 @@ class HomeViewModel : ViewModel() {
     }
 
     fun registerPoint(name: String, location: LatLng) {
-        _stops.add(
-            Stop(
-                name = name,
-                address = "Recife, PE",
-                avaliation = 4.0f,
-                location = location,
-                isBusStop = true,
-                lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
-                reviewCount = 1,
-                ratingAcessibilidade = 2,
-                ratingPisoTatil = 2,
-                ratingIluminacao = 2,
-                ratingCobertura = 2,
-                ratingDistribution = listOf(0, 0, 0, 1, 0)
-            )
+        val newStop = Stop(
+            name = name,
+            address = "Recife, PE",
+            avaliation = 0.0f,
+            location = location,
+            isBusStop = true,
+            lines = listOf("011 - Rota Customizada Cidadão", "024 - Circular Centro"),
+            reviewCount = 0,
+            ratingAcessibilidade = 0,
+            ratingPisoTatil = 0,
+            ratingIluminacao = 0,
+            ratingCobertura = 0,
+            ratingDistribution = listOf(0, 0, 0, 0, 0)
         )
+        _stops.add(newStop)
+        selectStop(newStop)
     }
 
     fun submitEvaluation(
@@ -254,71 +312,52 @@ class HomeViewModel : ViewModel() {
         cobertura: Int,
         userStars: Int
     ) {
-        val oldEval = userEvaluations[stopName]
+        val uid = authRepository.getCurrentUserUid() ?: return
+        val targetStop = _stops.find { it.name == stopName } ?: selectedStop ?: return
+        val stopId = targetStop.id.ifEmpty { targetStop.name }
+
         val newEval = UserStopEvaluation(acessibilidade, pisoTatil, iluminacao, cobertura, userStars)
         userEvaluations[stopName] = newEval
 
-        val index = _stops.indexOfFirst { it.name == stopName }
-        if (index != -1) {
-            val stop = _stops[index]
-
-            // Calculate new review count
-            val isNewReview = oldEval == null
-            val newReviewCount = if (isNewReview) stop.reviewCount + 1 else stop.reviewCount
-
-            // Update rating distribution
-            val mutableDist = stop.ratingDistribution.toMutableList()
-            if (!isNewReview && oldEval != null) {
-                val oldStarIdx = (oldEval.userStars - 1).coerceIn(0, 4)
-                mutableDist[oldStarIdx] = (mutableDist[oldStarIdx] - 1).coerceAtLeast(0)
-            }
-            val newStarIdx = (userStars - 1).coerceIn(0, 4)
-            mutableDist[newStarIdx] = mutableDist[newStarIdx] + 1
-
-            // Re-calculate average rating
-            var totalStars = 0f
-            var totalCount = 0
-            for (i in 0..4) {
-                totalStars += mutableDist[i] * (i + 1)
-                totalCount += mutableDist[i]
-            }
-            val newAverageRating = if (totalCount > 0) totalStars / totalCount else userStars.toFloat()
-
-            val updatedStop = stop.copy(
-                avaliation = (Math.round(newAverageRating * 10f) / 10f),
-                reviewCount = newReviewCount,
+        viewModelScope.launch {
+            val userReview = com.example.accessway.repository.UserReview(
+                userId = uid,
+                userStars = userStars,
                 ratingAcessibilidade = acessibilidade,
                 ratingPisoTatil = pisoTatil,
                 ratingIluminacao = iluminacao,
-                ratingCobertura = cobertura,
-                ratingDistribution = mutableDist
+                ratingCobertura = cobertura
             )
 
-            _stops[index] = updatedStop
+            communityStopsRepository.saveUserEvaluation(stopId, uid, userReview)
+                .onSuccess { updatedEval ->
+                    val index = _stops.indexOfFirst { (it.id.ifEmpty { it.name }) == stopId || it.name == stopName }
+                    if (index != -1) {
+                        val current = _stops[index]
+                        val updatedStop = current.copy(
+                            avaliation = updatedEval.avaliation,
+                            reviewCount = updatedEval.reviewCount,
+                            ratingAcessibilidade = updatedEval.ratingAcessibilidade,
+                            ratingPisoTatil = updatedEval.ratingPisoTatil,
+                            ratingIluminacao = updatedEval.ratingIluminacao,
+                            ratingCobertura = updatedEval.ratingCobertura,
+                            ratingDistribution = updatedEval.ratingDistribution
+                        )
+                        _stops[index] = updatedStop
 
-            val favIndex = favoriteStops.indexOfFirst { it.id == updatedStop.id || (it.name == updatedStop.name && it.id.isEmpty()) }
-            if (favIndex != -1) {
-                favoriteStops[favIndex] = updatedStop
-            }
+                        val favIndex = favoriteStops.indexOfFirst { (it.id.ifEmpty { it.name }) == stopId || it.name == stopName }
+                        if (favIndex != -1) {
+                            favoriteStops[favIndex] = updatedStop
+                        }
 
-            if (selectedStop?.name == stopName) {
-                selectedStop = updatedStop
-            }
-
-            val stopId = updatedStop.id.ifEmpty { updatedStop.name }
-            viewModelScope.launch {
-                val evaluation = com.example.accessway.repository.StopEvaluation(
-                    id = stopId,
-                    avaliation = updatedStop.avaliation,
-                    reviewCount = updatedStop.reviewCount,
-                    ratingAcessibilidade = updatedStop.ratingAcessibilidade,
-                    ratingPisoTatil = updatedStop.ratingPisoTatil,
-                    ratingIluminacao = updatedStop.ratingIluminacao,
-                    ratingCobertura = updatedStop.ratingCobertura,
-                    ratingDistribution = updatedStop.ratingDistribution
-                )
-                communityStopsRepository.saveEvaluation(stopId, evaluation)
-            }
+                        if (selectedStop?.name == stopName || (selectedStop?.id?.ifEmpty { selectedStop?.name }) == stopId) {
+                            selectedStop = updatedStop
+                        }
+                    }
+                }
+                .onFailure {
+                    Log.e("HomeViewModel", "Error saving evaluation to Firestore", it)
+                }
         }
     }
 }

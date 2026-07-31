@@ -22,6 +22,7 @@ fun HomeScreen(
 ) {
     LaunchedEffect(Unit) {
         viewModel.loadSearchRadius()
+        viewModel.loadFavoriteStops()
     }
 
 

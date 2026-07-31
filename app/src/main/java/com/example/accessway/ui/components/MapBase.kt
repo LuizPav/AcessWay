@@ -66,6 +66,17 @@ fun bitmapDescriptorFromVector(
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
+enum class StopRatingColor { GRAY, RED, YELLOW, GREEN }
+
+fun getStopRatingColor(stop: com.example.accessway.model.Stop): StopRatingColor {
+    if (stop.reviewCount <= 0 || stop.avaliation <= 0f) return StopRatingColor.GRAY
+    return when {
+        stop.avaliation < 2.5f -> StopRatingColor.RED
+        stop.avaliation < 3.8f -> StopRatingColor.YELLOW
+        else -> StopRatingColor.GREEN
+    }
+}
+
 @Composable
 fun MapBase(
     modifier: Modifier = Modifier,
@@ -79,12 +90,8 @@ fun MapBase(
     var clickedLatLng by remember { mutableStateOf<LatLng?>(null) }
     var inputStopName by remember { mutableStateOf("") }
 
-    var busStopIcon by remember {
-        mutableStateOf<BitmapDescriptor?>(null)
-    }
-    var favoriteBusStopIcon by remember {
-        mutableStateOf<BitmapDescriptor?>(null)
-    }
+    var busStopIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var favoriteBusStopIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
 
     LaunchedEffect(context) {
         MapsInitializer.initialize(context)
@@ -201,6 +208,7 @@ fun MapBase(
             stop.location?.let { location ->
 
                 val isFav = viewModel.isFavorite(stop)
+
                 Marker(
                     state = MarkerState(position = location),
                     title = stop.name,
@@ -208,7 +216,7 @@ fun MapBase(
                         if (isFav) favoriteBusStopIcon else busStopIcon
                     } else null,
                     onClick = {
-                        viewModel.selectedStop = stop
+                        viewModel.selectStop(stop)
                         true // consume click to suppress default info window
                     }
                 )

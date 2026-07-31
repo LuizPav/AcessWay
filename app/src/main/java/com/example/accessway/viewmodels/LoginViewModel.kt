@@ -9,6 +9,10 @@ import com.example.accessway.repository.AuthRepository
 import com.example.accessway.ui.state.AuthState
 import kotlinx.coroutines.launch
 
+import android.util.Log
+
+private const val TAG = "LoginViewModel"
+
 class LoginViewModel : ViewModel() {
 
     // Repositório
@@ -30,9 +34,10 @@ class LoginViewModel : ViewModel() {
     fun onSenhaChange(newValue: String) { senha = newValue }
 
     fun login(onSuccess: () -> Unit) {
-        // Validação básica
+        Log.d(TAG, "login attempt for email=$email")
         if (email.isBlank() || senha.isBlank()) {
             errorMessage = "Preencha todos os campos."
+            Log.w(TAG, "Login failed validation: empty email or password")
             return
         }
 
@@ -43,11 +48,13 @@ class LoginViewModel : ViewModel() {
             val result = authRepository.login(email, senha)
 
             result.fold(
-                onSuccess = {
+                onSuccess = { uid ->
+                    Log.d(TAG, "Login successful for uid=$uid")
                     authState = AuthState.Success
                     onSuccess()
                 },
                 onFailure = { throwable ->
+                    Log.e(TAG, "Login failed for email=$email", throwable)
                     val msg = when (throwable) {
                         is com.google.firebase.auth.FirebaseAuthInvalidUserException -> {
                             "Usuário não encontrado ou desativado."

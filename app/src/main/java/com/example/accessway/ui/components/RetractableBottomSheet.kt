@@ -97,14 +97,15 @@ fun RetractableBottomSheet(
         )
     ) {
         if (stop != null) {
-            val userEval = viewModel.userEvaluations[stop.name]
+            val stopId = stop.id.ifEmpty { stop.name }
+            val userEval = viewModel.userEvaluations[stopId] ?: viewModel.userEvaluations[stop.name]
 
             // Temporary form states
-            var tempAcessibilidade by remember(stop, isEditing) { mutableStateOf(userEval?.ratingAcessibilidade ?: stop.ratingAcessibilidade) }
-            var tempPisoTatil by remember(stop, isEditing) { mutableStateOf(userEval?.ratingPisoTatil ?: stop.ratingPisoTatil) }
-            var tempIluminacao by remember(stop, isEditing) { mutableStateOf(userEval?.ratingIluminacao ?: stop.ratingIluminacao) }
-            var tempCobertura by remember(stop, isEditing) { mutableStateOf(userEval?.ratingCobertura ?: stop.ratingCobertura) }
-            var tempStars by remember(stop, isEditing) { mutableStateOf(userEval?.userStars ?: stop.avaliation.roundToInt().coerceIn(1, 5)) }
+            var tempAcessibilidade by remember(stop, isEditing) { mutableStateOf(userEval?.ratingAcessibilidade ?: (if (stop.ratingAcessibilidade > 0) stop.ratingAcessibilidade else 2)) }
+            var tempPisoTatil by remember(stop, isEditing) { mutableStateOf(userEval?.ratingPisoTatil ?: (if (stop.ratingPisoTatil > 0) stop.ratingPisoTatil else 2)) }
+            var tempIluminacao by remember(stop, isEditing) { mutableStateOf(userEval?.ratingIluminacao ?: (if (stop.ratingIluminacao > 0) stop.ratingIluminacao else 2)) }
+            var tempCobertura by remember(stop, isEditing) { mutableStateOf(userEval?.ratingCobertura ?: (if (stop.ratingCobertura > 0) stop.ratingCobertura else 2)) }
+            var tempStars by remember(stop, isEditing) { mutableStateOf(userEval?.userStars ?: (if (stop.avaliation > 0f) stop.avaliation.roundToInt().coerceIn(1, 5) else 5)) }
 
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -244,7 +245,8 @@ fun RetractableBottomSheet(
                                         statusText = when (stop.ratingAcessibilidade) {
                                             3 -> "Ótimo estado"
                                             2 -> "Parcial"
-                                            else -> "Ruim"
+                                            1 -> "Ruim"
+                                            else -> "Sem dados"
                                         },
                                         statusValue = stop.ratingAcessibilidade,
                                         icon = { color -> Icon(Icons.Default.Accessible, null, tint = color) },
@@ -255,7 +257,8 @@ fun RetractableBottomSheet(
                                         statusText = when (stop.ratingCobertura) {
                                             3 -> "Disponível"
                                             2 -> "Parcial"
-                                            else -> "Ausente"
+                                            1 -> "Ausente"
+                                            else -> "Sem dados"
                                         },
                                         statusValue = stop.ratingCobertura,
                                         icon = { color -> Icon(Icons.Default.Home, null, tint = color) },
@@ -268,7 +271,8 @@ fun RetractableBottomSheet(
                                         statusText = when (stop.ratingPisoTatil) {
                                             3 -> "Bom estado"
                                             2 -> "Parcial"
-                                            else -> "Ausente"
+                                            1 -> "Ausente"
+                                            else -> "Sem dados"
                                         },
                                         statusValue = stop.ratingPisoTatil,
                                         icon = { color -> Icon(Icons.Default.BorderOuter, null, tint = color) },
@@ -279,7 +283,8 @@ fun RetractableBottomSheet(
                                         statusText = when (stop.ratingIluminacao) {
                                             3 -> "Bom estado"
                                             2 -> "Parcial"
-                                            else -> "Ausente"
+                                            1 -> "Ausente"
+                                            else -> "Sem dados"
                                         },
                                         statusValue = stop.ratingIluminacao,
                                         icon = { color -> Icon(Icons.Default.Lightbulb, null, tint = color) },
@@ -305,6 +310,11 @@ fun RetractableBottomSheet(
                                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
                             )
 
+                            val hasReviews = stop.reviewCount > 0
+                            val displayRating = if (hasReviews) String.format("%.1f", stop.avaliation).replace(".", ",") else "--"
+                            val displayStars = if (hasReviews) stop.avaliation.roundToInt() else 0
+                            val reviewCountText = if (hasReviews) "${stop.reviewCount} avaliações" else "Sem avaliações ainda"
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -317,7 +327,7 @@ fun RetractableBottomSheet(
                                     modifier = Modifier.weight(0.4f)
                                 ) {
                                     Text(
-                                        text = String.format("%.1f", stop.avaliation).replace(".", ","),
+                                        text = displayRating,
                                         fontSize = 42.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextDarkGray
@@ -329,14 +339,14 @@ fun RetractableBottomSheet(
                                             Icon(
                                                 imageVector = Icons.Default.Star,
                                                 contentDescription = null,
-                                                tint = if (index < stop.avaliation.roundToInt()) Color(0xFFFFB300) else Color.LightGray,
+                                                tint = if (index < displayStars) Color(0xFFFFB300) else Color.LightGray,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${stop.reviewCount} avaliações",
+                                        text = reviewCountText,
                                         fontSize = 11.sp,
                                         color = TextLightGray
                                     )
@@ -352,7 +362,7 @@ fun RetractableBottomSheet(
                                     val maxCount = stop.ratingDistribution.maxOrNull()?.coerceAtLeast(1) ?: 1
                                     for (star in 5 downTo 1) {
                                         val count = stop.ratingDistribution.getOrNull(star - 1) ?: 0
-                                        val fraction = count.toFloat() / maxCount
+                                        val fraction = if (hasReviews) count.toFloat() / maxCount else 0f
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.fillMaxWidth()
@@ -537,7 +547,8 @@ fun ConditionCard(
     val (backgroundColor, contentColor) = when (statusValue) {
         3 -> Color(0xFFE8F5E9) to Color(0xFF2E7D32) // Verde suave
         2 -> Color(0xFFFFF3E0) to Color(0xFFEF6C00) // Laranja suave
-        else -> Color(0xFFFFEBEE) to Color(0xFFC62828) // Vermelho suave
+        1 -> Color(0xFFFFEBEE) to Color(0xFFC62828) // Vermelho suave
+        else -> Color(0xFFF1F5F9) to Color(0xFF64748B) // Cinza neutro
     }
 
     Card(

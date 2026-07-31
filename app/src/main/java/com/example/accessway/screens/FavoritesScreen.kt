@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Place
@@ -60,8 +59,6 @@ fun FavoritesScreen(
         viewModel.loadFavoriteStops()
     }
 
-    val favoritesList = viewModel.favorites
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -99,7 +96,7 @@ fun FavoritesScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // --- FAVORITES LIST ---
-        if (favoritesList.isEmpty() && viewModel.favoriteStops.isEmpty()) {
+        if (viewModel.favoriteStops.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -119,14 +116,14 @@ fun FavoritesScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Lista vazia",
+                        text = "Nenhum favorito salvo",
                         color = TextMediumGray,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Favorite locais acessíveis pelo mapa ou rotas para visualizá-los aqui rapidamente.",
+                        text = "Favorite paradas de ônibus no mapa para visualizá-las aqui rapidamente.",
                         color = TextLightGray,
                         fontSize = 14.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -142,48 +139,24 @@ fun FavoritesScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (favoritesList.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Locais Salvos",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LogoBlue,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    items(favoritesList, key = { "place_${it.id}" }) { favorite ->
-                        FavoriteCard(
-                            favorite = favorite,
-                            onDeleteClick = {
-                                viewModel.removeFavorite(favorite.id)
-                                onFavoriteRemoved(favorite.id)
-                            },
-                            onClick = { onFavoriteClick(favorite) }
-                        )
-                    }
+                item {
+                    Text(
+                        text = "Paradas Favoritas",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LogoBlue,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
-
-                if (viewModel.favoriteStops.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Paradas Favoritas",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LogoBlue,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                        )
-                    }
-                    items(viewModel.favoriteStops, key = { "stop_${it.id}" }) { favorite ->
-                        FavoriteCard(
-                            favorite = favorite,
-                            onDeleteClick = {
-                                viewModel.removeFavorite(favorite.id)
-                                onFavoriteRemoved(favorite.id)
-                            },
-                            onClick = { onFavoriteClick(favorite) }
-                        )
-                    }
+                items(viewModel.favoriteStops, key = { "stop_${it.id}" }) { favorite ->
+                    FavoriteCard(
+                        favorite = favorite,
+                        onDeleteClick = {
+                            viewModel.removeFavorite(favorite.id)
+                            onFavoriteRemoved(favorite.id)
+                        },
+                        onClick = { onFavoriteClick(favorite) }
+                    )
                 }
 
                 item {
