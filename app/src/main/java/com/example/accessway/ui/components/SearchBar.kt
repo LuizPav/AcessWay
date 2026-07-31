@@ -2,6 +2,7 @@ package com.example.accessway.ui.components
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,22 +35,38 @@ fun SearchBar(
     onMenuClick: () -> Unit,
     onSearchSubmit: (String) -> Unit
 ) {
-    var textSearch by remember { mutableStateOf("") }
 
     Row(
         modifier = modifier.padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
+
         TextField(
             modifier = Modifier
-                .border(1.dp, Color.DarkGray, RoundedCornerShape(24.dp))
+                .border(
+                    width = 1.dp,
+                    color = Color.DarkGray,
+                    shape = RoundedCornerShape(24.dp)
+                )
                 .fillMaxWidth()
-                .shadow(30.dp, RoundedCornerShape(24.dp)),
+                .shadow(
+                    elevation = 30.dp,
+                    shape = RoundedCornerShape(24.dp)
+                ),
+
             value = textSearch,
-            onValueChange = { textSearch = it },
+
+            onValueChange = {
+                textSearch = it
+            },
+
             shape = RoundedCornerShape(24.dp),
-            placeholder = { Text("Buscar parada ou endereço") },
+
+            placeholder = {
+                Text("Buscar parada ou endereço")
+            },
+
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
@@ -59,17 +76,63 @@ fun SearchBar(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
             ),
+
             leadingIcon = {
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Abrir menu de navegação",
-                        tint = Color.Black
-                    )
+
+                Box {
+
+                    IconButton(
+                        onClick = {
+                            showMenu = true
+                            onMenuClick()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Abrir menu",
+                            tint = Color.Black
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = {
+                            showMenu = false
+                        },
+                        containerColor = Color.White,
+                        modifier = Modifier
+                    ) {
+
+                        DropdownMenuItem(
+                            text = { Text("Paradas próximas") },
+                            onClick = {
+                                showMenu = false
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Reportar problema") },
+                            onClick = {
+                                showMenu = false
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Avaliações") },
+                            onClick = {
+                                showMenu = false
+                            }
+                        )
+                    }
                 }
             },
+
             trailingIcon = {
-                IconButton(onClick = { onSearchSubmit(textSearch) }) {
+                IconButton(
+                    onClick = {
+                        onSearchSubmit(textSearch)
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Buscar",
